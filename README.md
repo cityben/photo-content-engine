@@ -8,6 +8,7 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 
 | Page | |
 |---|---|
+| **Focus** | The growth check: runs any mix of free checks (connections, posting targets, approvals and case studies, pipeline, leads, Search Console quick wins and drops, traffic and enquiries, market and reputation) and paid DataForSEO refreshes, with a cost estimate per check and against the month's budget. Writes a scored brief with the three things to focus on and a checklist you tick off — items carry over between runs and reopen if they come back. Presets (Free, Weekly, Everything) and an optional automatic Monday run (`CRON_SECRET`) |
 | **Dashboard** | Setup checklist, what's scheduled this week, 30-day numbers, AI "do next" advice, recent jobs |
 | **Jobs → New job** | Upload up to 10 photos and a short write-up — or import a Word case study: AI reads it into every website case study field (type, company, location, postcode, duration, classification, services, the story sections, testimonial, SEO) using only the document's facts and lists what's missing; untick **Read with AI** to map by headings instead. Photos in the document are added. Then draft with AI, or create it without AI and write it yourself |
 | **Job** | Tabs for LinkedIn, Instagram, Case study, Google Business, Keywords, Tips, Photos & brief. Write by hand or with AI, rewrite a section with your own instructions, fill the case study from Word; the case study form mirrors the website editor's tabs and shows how complete it is, **approve** each part, then schedule posts (next queue slot or a set UK time) and send the case study to the website as a draft |
@@ -94,6 +95,7 @@ src/
     ├── seo/                        DataForSEO client (budget guard), market + reputation snapshots
     ├── schedule.js / autofill.js   Publishing days, times and posts per day; calendar auto-fill
     ├── targets.js                  Posting targets, pace and next actions
+    ├── agent.js                    Growth check: checks, costs, brief, checklist, weekly run
     ├── ideas.js / planner.js       Content pipeline and the AI planner
     ├── reports.js                  Monthly report data, CSV export
     ├── leads.js                    Lead search, pipeline, outreach drafts and approval
@@ -101,7 +103,7 @@ src/
     ├── store/                      MongoDB, or in-memory for local dev
     ├── media.js                    Vercel Blob or local photo storage
     └── time.js                     UK-time scheduling helpers
-tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market, ideas, reports, leads, targets
+tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market, ideas, reports, leads, targets, agent
 ```
 
 ### Updating website options

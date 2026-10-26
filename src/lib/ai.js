@@ -411,3 +411,43 @@ ${String(text).slice(0, 60000)}
     run: { model: modelId, inputTokens: usage?.inputTokens ?? null, outputTokens: usage?.outputTokens ?? null, costUsd: await runCost(modelId, usage, providerMetadata) },
   };
 }
+
+/* --- Growth check brief ---------------------------------------------------- */
+
+const focusBriefSchema = z.object({
+  headline: z.string().describe("One line: the single most important thing this week, specific, with a number if the findings give one"),
+  summary: z.string().describe("3-5 sentences for the boss: where things stand, what's working, what's slipping, and why it matters for enquiries"),
+  focus: z
+    .array(z.object({ title: z.string().describe("A focus area, imperative, under 60 characters"), why: z.string().describe("One or two sentences tying it to the findings") }))
+    .describe("Exactly 3 focus areas, most important first"),
+  checklist: z
+    .array(
+      z.object({
+        key: z.string().describe("The `key` of the finding this item comes from — copied exactly"),
+        title: z.string().describe("Imperative task, specific, under 80 characters"),
+        why: z.string().describe("One sentence: why it matters"),
+        impact: z.enum(["high", "medium", "low"]),
+        effort: z.enum(["minutes", "hour", "half-day", "day+"]).describe("Rough effort for a small marketing team"),
+      })
+    )
+    .describe("6-12 tasks drawn only from the findings, ordered by impact then effort (quick high-impact first)"),
+});
+
+/**
+ * Turn the growth check's findings into one brief and a checklist. Items
+ * must come from the findings (by key) — nothing invented. Returns
+ * { brief, run }.
+ */
+export async function generateFocusBrief({ findings, checks }) {
+  const modelId = await getActiveModel();
+  const { output, usage, providerMetadata } = await generateText({
+    model: modelId,
+    system: `${VOICE}
+
+You are the growth lead for this contractor's marketing. You get the results of an automated check across their content, posting, search, competitors, reputation and leads. Decide what matters most this week. Prefer actions that lead to enquiries. Merge duplicates. Use only the findings given — no new facts or numbers.`,
+    maxOutputTokens: 4000,
+    output: Output.object({ schema: focusBriefSchema }),
+    prompt: `Check results (JSON):\n${JSON.stringify({ checks, findings }, null, 1).slice(0, 40000)}`,
+  });
+  return { brief: output, run: { model: modelId, costUsd: await runCost(modelId, usage, providerMetadata), at: new Date().toISOString() } };
+}

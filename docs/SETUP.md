@@ -105,6 +105,10 @@ What each page uses:
 - **Reputation & authority**: Business Data (Google Business profile, Google and Trustpilot reviews), Content Analysis (brand mentions and tone), AI Optimization LLM mentions (Google AI Overviews UK; ChatGPT data is US-only), Backlinks summary and domain intersection (link prospects), OnPage instant pages (page checks).
 - **Leads → Find leads**: Business Data business_listings search (Google Maps listings by category within a radius), about $0.03 per search of up to 100 businesses.
 
+## Weekly growth check (optional)
+
+Focus → **Run it automatically** runs the growth check every Monday at 06:30 UTC (`vercel.json` → `/api/cron/agent`). Add `CRON_SECRET` (any long random string) in Vercel and redeploy — Vercel sends it with each scheduled call, and the route refuses anything without it. Paid refreshes in the chosen preset still respect `DATAFORSEO_MONTHLY_BUDGET`.
+
 ## Other systems (API keys)
 
 To let another project create jobs through `POST /api/v1/jobs`:
