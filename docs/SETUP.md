@@ -5,7 +5,7 @@
 - Node.js 18+ installed
 - Git installed and configured
 - GitHub account
-- API keys for: Claude (Anthropic), Buffer, Acme Ltd website
+- Keys for: Vercel AI Gateway, Buffer, Acme Ltd website
 
 ## Local Development Setup
 
@@ -33,9 +33,11 @@ cp .env.example .env.local
 Fill in your API keys:
 
 ```env
-ANTHROPIC_API_KEY=sk-...           # Get from console.anthropic.com
+AI_GATEWAY_API_KEY=...              # vercel.com → AI Gateway → API Keys
 BUFFER_API_TOKEN=...                # Get from buffer.com/developers
+BUFFER_PROFILE_IDS=li_id,ig_id,x_id # LinkedIn, Instagram, Twitter — in that order
 WEBSITE_API_TOKEN=...               # Ask Acme Ltd admin
+WEBSITE_API_SECRET=...              # Ask Acme Ltd admin
 MONGODB_URI=...                     # For caching (optional)
 ```
 
@@ -49,13 +51,17 @@ Visit `http://localhost:3000` — you should see the upload interface.
 
 ## Get Your API Keys
 
-### Claude API Key
+### Vercel AI Gateway Key
 
-1. Go to [console.anthropic.com](https://console.anthropic.com)
-2. Sign in or create account
-3. Click **API Keys** on the left
-4. Click **Create Key**
-5. Copy and paste into `.env.local`
+All AI calls (photo analysis and content writing) go through the Vercel AI Gateway — no Anthropic key is needed.
+
+1. Go to your Vercel dashboard → **AI Gateway**
+2. Click **API Keys** → **Create Key**
+3. Paste it into `.env.local` as `AI_GATEWAY_API_KEY`
+
+On Vercel deployments the key is optional: the AI SDK authenticates with the project's OIDC token automatically. For local dev you can also run `vercel env pull` to fetch a short-lived OIDC token instead of creating a key.
+
+The default model is `anthropic/claude-sonnet-5.5`. Set `AI_GATEWAY_MODEL` to any gateway model ID to change it.
 
 ### Buffer API Token
 
@@ -108,24 +114,17 @@ vercel
 
 Follow prompts to connect your GitHub repo.
 
-### Deploy to Claude Cloud
+Add `BUFFER_API_TOKEN`, `BUFFER_PROFILE_IDS`, `WEBSITE_API_TOKEN`, `WEBSITE_API_SECRET` and any feature flags under **Project → Settings → Environment Variables**. `AI_GATEWAY_API_KEY` is only needed if you turn off Vercel OIDC.
 
-1. Push to GitHub:
-   ```bash
-   git push origin main
-   ```
-
-2. Claude Cloud will auto-deploy via GitHub Actions
-
-3. Check `.github/workflows/deploy.yml` for deployment config
+The API routes have no authentication yet — enable **Deployment Protection** so only your team can use the app.
 
 ## Troubleshooting
 
-### "ANTHROPIC_API_KEY not found"
+### "Unauthenticated. Configure AI_GATEWAY_API_KEY"
 
-- Verify `.env.local` has the key
+- Verify `.env.local` has `AI_GATEWAY_API_KEY` (or run `vercel env pull` for an OIDC token)
 - Restart dev server: `npm run dev`
-- Check key is valid in console.anthropic.com
+- Check the key and credit balance in Vercel → AI Gateway
 
 ### "Buffer API error: 401"
 
@@ -141,23 +140,27 @@ Follow prompts to connect your GitHub repo.
 
 ### Image Upload Fails
 
-- Max file size: 10MB
-- Supported formats: JPG, PNG, WebP
+- Supported formats: JPG, PNG, WebP (export iPhone HEIC photos as JPG)
+- Photos are resized to 1600px in the browser before upload, so large camera files are fine up to 20MB
 - Check browser console for error details
 
 ## Project Structure Reference
 
 ```
 src/
-├── api/
-│   └── generate-content.js         # Main photo processing endpoint
-├── lib/
-│   ├── content-generator.js        # Prompt templates
-│   ├── image-analyzer.js           # Image processing helpers
-│   ├── buffer.js                   # Buffer API integration
-│   └── website-api.js              # Website API client
-└── public/
-    └── (UI coming in Phase 2)
+├── app/
+│   ├── page.jsx                    # Upload + content UI
+│   └── api/
+│       ├── generate-content/route.js  # Main photo processing endpoint
+│       └── buffer/route.js            # Buffer status + queue a post
+├── components/                     # UI (shadcn/ui primitives in ui/)
+└── lib/
+    ├── ai.js                       # Vercel AI Gateway calls
+    ├── content-generator.js        # Prompt templates
+    ├── formats.js                  # Copy/export formatting
+    ├── image-analyzer.js           # Image processing helpers
+    ├── buffer.js                   # Buffer API integration
+    └── website-api.js              # Website API client
 
 docs/
 ├── API.md                          # API reference
@@ -172,7 +175,7 @@ docs/
 - [x] Content generation (7 formats)
 - [x] Buffer integration
 - [ ] Website auto-post
-- [ ] Simple UI
+- [x] Simple UI
 
 ### Phase 2
 
@@ -197,7 +200,8 @@ docs/
 | Command | Purpose |
 |---------|---------|
 | `npm run dev` | Start dev server |
-| `npm test` | Run tests |
+| `npm test` | Run tests (watch) |
+| `npm run test:ci` | Run tests once |
 | `npm run build` | Build for production |
 | `npm start` | Start production server |
 | `npm run lint` | Check code quality |

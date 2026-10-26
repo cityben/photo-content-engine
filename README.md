@@ -50,10 +50,13 @@ cp .env.example .env.local
 ```
 
 Then add your API keys:
-- `ANTHROPIC_API_KEY` — from console.anthropic.com
+- `AI_GATEWAY_API_KEY` — from vercel.com → AI Gateway → API Keys (not needed on Vercel deployments, which authenticate with OIDC)
 - `BUFFER_API_TOKEN` — from buffer.com/developers
-- `WEBSITE_API_TOKEN` — from your Acme Ltd admin
+- `BUFFER_PROFILE_IDS` — comma-separated LinkedIn, Instagram, Twitter profile IDs (in that order)
+- `WEBSITE_API_TOKEN` / `WEBSITE_API_SECRET` — from your Acme Ltd admin
 - `MONGODB_URI` — if using MongoDB for caching
+
+All AI calls go through the [Vercel AI Gateway](https://vercel.com/ai-gateway) via the AI SDK. The default model is `anthropic/claude-sonnet-5.5`; set `AI_GATEWAY_MODEL` to switch to any other gateway model without code changes.
 
 ### 3. Run Development
 
@@ -65,12 +68,11 @@ Open `http://localhost:3000` in your browser.
 
 ### 4. Test Photo Upload
 
-1. Click **Upload Photo**
-2. Select a job site image
-3. Add optional metadata (job title, sector, location)
-4. Click **Generate Content**
-5. View all 7 formats
-6. Export or post to Buffer
+1. Drop a job site photo onto the upload area (or click to browse)
+2. Add optional job details (title, sector, location)
+3. Click **Generate 7 formats**
+4. Review each format card — copy one, or **Copy all** / download Markdown or JSON
+5. Edit posts in the **Buffer preview** and add them to your Buffer queue (requires `ENABLE_BUFFER_POSTING=true`)
 
 ## API Reference
 
@@ -80,11 +82,8 @@ See `docs/API.md` for full endpoint documentation.
 
 ```bash
 curl -X POST http://localhost:3000/api/generate-content \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@photo.jpg" \
-  -F "job_title=Commercial HVAC Installation" \
-  -F "sector=Commercial"
+  -H "Content-Type: application/json" \
+  -d '{"imageData": "https://example.com/photo.jpg", "metadata": {"job_title": "Commercial HVAC Installation", "sector": "Commercial"}}'
 ```
 
 ## Deployment
@@ -96,43 +95,42 @@ npm i -g vercel
 vercel
 ```
 
-### Deploy to Claude Cloud
+Add the environment variables above in the Vercel project settings. With Vercel's OIDC enabled (the default), `AI_GATEWAY_API_KEY` is not required in production.
 
-Push to GitHub — Claude Cloud auto-deploys:
-
-```bash
-git push origin main
-```
+> **Note:** the API routes have no authentication yet. Turn on Vercel Deployment Protection (or put the app behind your SSO) so only your team can spend AI Gateway credits and post to Buffer.
 
 ## Project Structure
 
 ```
 src/
-├── api/
-│   ├── generate-content.js      # Main handler for photo → content
-│   ├── find-leads.js            # Leads scraper (Phase 3)
-│   └── track-engagement.js      # Analytics (Phase 2)
-├── lib/
-│   ├── claude.js                # Claude API wrapper
-│   ├── content-generator.js     # Prompt templates for each format
-│   ├── buffer.js                # Buffer.com integration
-│   ├── website-api.js           # Acme Ltd API client
-│   └── image-analyzer.js        # Image analysis helpers
-├── models/
-│   ├── Lead.js                  # MongoDB: Lead records
-│   ├── CachePhoto.js            # MongoDB: Photo cache
-│   └── OutreachLog.js           # MongoDB: Outreach tracking
-└── public/
-    └── (UI coming in Phase 2)
+├── app/
+│   ├── page.jsx                     # Upload + content UI
+│   ├── layout.jsx                   # Root layout, Inter font, toasts
+│   ├── globals.css                  # Paper design tokens (Tailwind v4)
+│   └── api/
+│       ├── generate-content/route.js  # Photo → analysis → 7 formats + keywords
+│       └── buffer/route.js            # Buffer status (GET) and queue a post (POST)
+├── components/
+│   ├── ui/                          # shadcn/ui primitives (paper variant)
+│   ├── content-workspace.jsx        # Page state: upload, generate, export
+│   ├── photo-dropzone.jsx           # Drag-and-drop upload, resizes in browser
+│   ├── content-card.jsx             # One card per content format
+│   └── buffer-preview.jsx           # Editable post preview + send to Buffer
+└── lib/
+    ├── ai.js                        # Vercel AI Gateway calls (AI SDK)
+    ├── content-generator.js         # Prompt templates for each format
+    ├── formats.js                   # Format definitions, copy/export text
+    ├── buffer.js                    # Buffer.com integration
+    ├── website-api.js               # Acme Ltd API client
+    └── image-analyzer.js            # Image analysis helpers
 
 docs/
 ├── API.md                       # Full API documentation
-├── SETUP.md                     # Detailed setup guide
-└── ARCHITECTURE.md              # Technical design
+└── SETUP.md                     # Detailed setup guide
 
 tests/
 ├── photo-generation.test.js
-└── leads-scraper.test.js
+└── formats.test.js
 ```
 
 ## Configuration
@@ -168,7 +166,8 @@ ENABLE_WEBSITE_AUTO_POST=true    # Auto-create website drafts
 ### Run Tests
 
 ```bash
-npm test
+npm test          # watch mode
+npm run test:ci   # single run
 ```
 
 ### Run Linter

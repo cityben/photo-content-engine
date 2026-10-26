@@ -13,13 +13,9 @@ https://photo-engine.vercel.app/api (Production)
 
 ## Authentication
 
-All requests require a Bearer token:
+The API routes are not authenticated yet; they are called directly by the web UI. Protect production deployments with Vercel Deployment Protection (or your SSO) so only your team can reach them.
 
-```bash
-Authorization: Bearer YOUR_API_KEY
-```
-
-API keys are managed by the Acme Ltd admin.
+AI calls are made server-side through the Vercel AI Gateway (`AI_GATEWAY_API_KEY`, or the project's OIDC token on Vercel).
 
 ---
 
@@ -31,7 +27,6 @@ Uploads a photo and generates marketing content for 7 platforms.
 
 ```bash
 curl -X POST http://localhost:3000/api/generate-content \
-  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "imageData": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
@@ -147,20 +142,33 @@ curl -X POST http://localhost:3000/api/generate-content \
 |------|---------|
 | 200 | Success |
 | 400 | Bad request (missing/invalid data) |
-| 401 | Unauthorized (invalid API key) |
 | 500 | Server error |
 
 ---
 
-## POST /posts/to-buffer
+## GET /buffer
 
-Posts generated content to Buffer for scheduling.
+Reports whether Buffer is configured, without exposing secrets.
+
+```json
+{
+  "configured": true,
+  "posting_enabled": true,
+  "profiles": { "linkedin": true, "instagram": true, "twitter": false },
+  "connected_profiles": [{ "service": "linkedin", "formatted_username": "Acme Ltd" }]
+}
+```
+
+---
+
+## POST /buffer
+
+Adds a post to the Buffer queue for the matching profile in `BUFFER_PROFILE_IDS`. Requires `ENABLE_BUFFER_POSTING=true` (otherwise returns 403).
 
 ### Request
 
 ```bash
-curl -X POST http://localhost:3000/api/posts/to-buffer \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+curl -X POST http://localhost:3000/api/buffer \
   -H "Content-Type: application/json" \
   -d '{
     "platform": "linkedin",
@@ -195,16 +203,6 @@ curl -X POST http://localhost:3000/api/posts/to-buffer \
 
 ## Error Responses
 
-### 401 Unauthorized
-
-```json
-{
-  "error": "Missing or invalid authorization header"
-}
-```
-
-**Fix:** Verify your API key is valid and the Authorization header is set correctly.
-
 ### 400 Bad Request
 
 ```json
@@ -230,17 +228,7 @@ curl -X POST http://localhost:3000/api/posts/to-buffer \
 
 ## Rate Limits
 
-- **Free tier:** 10 requests/hour
-- **Pro tier:** 100 requests/hour
-- **Enterprise:** Custom limits
-
-Rate limit headers:
-
-```
-X-RateLimit-Limit: 10
-X-RateLimit-Remaining: 9
-X-RateLimit-Reset: 1697883600
-```
+Not enforced by this app yet. Each `/generate-content` call makes 9 AI Gateway requests (1 photo analysis + 8 text formats), billed to your gateway account.
 
 ---
 
@@ -249,13 +237,10 @@ X-RateLimit-Reset: 1697883600
 ### JavaScript/Node.js
 
 ```javascript
-const API_KEY = process.env.PHOTO_ENGINE_API_KEY;
-
 async function generateContent(imageUrl, metadata) {
   const response = await fetch('http://localhost:3000/api/generate-content', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -289,11 +274,8 @@ console.log(content.content.linkedin.post);
 import requests
 import os
 
-API_KEY = os.environ.get('PHOTO_ENGINE_API_KEY')
-
 def generate_content(image_url, metadata):
     headers = {
-        'Authorization': f'Bearer {API_KEY}',
         'Content-Type': 'application/json',
     }
     
@@ -324,7 +306,6 @@ print(content['content']['linkedin']['post'])
 
 ```bash
 curl -X POST http://localhost:3000/api/generate-content \
-  -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
   -d @- <<'EOF'
 {
