@@ -89,7 +89,7 @@ export default async function Dashboard() {
               {setup.map((s) => (
                 <li key={s.id} className="flex items-start gap-2.5 rounded-lg bg-gray-50 p-3">
                   {s.done ? (
-                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-700" />
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
                   ) : (
                     <Circle className="mt-0.5 size-4 shrink-0 text-gray-400" />
                   )}

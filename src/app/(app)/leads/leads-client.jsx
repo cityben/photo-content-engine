@@ -168,7 +168,7 @@ export function SearchResults({ rows, inPipeline }) {
                   )}
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className={cn("inline-block min-w-8 rounded-full px-2 py-0.5 text-center text-xs font-semibold tabular-nums", r.fit >= 60 ? "bg-marker-soft text-green-800" : "bg-gray-100 text-gray-700")}>{r.fit}</span>
+                  <span className={cn("inline-block min-w-8 rounded-full px-2 py-0.5 text-center text-xs font-semibold tabular-nums", r.fit >= 60 ? "bg-marker-soft text-primary" : "bg-gray-100 text-gray-700")}>{r.fit}</span>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   <span className="inline-flex items-center gap-1">

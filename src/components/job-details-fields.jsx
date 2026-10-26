@@ -1,6 +1,6 @@
 "use client";
 
-import options from "@/data/website-options.json";
+import { useWebsiteOptions } from "@/components/options-provider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,6 +26,7 @@ function Choice({ id, label, value, onChange, items, placeholder, disabled }) {
 }
 
 export function JobDetailsFields({ value, onChange, disabled }) {
+  const options = useWebsiteOptions();
   const set = (key) => (v) => onChange({ ...value, [key]: v });
   return (
     <div className="grid gap-4 sm:grid-cols-2">

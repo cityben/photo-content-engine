@@ -50,9 +50,9 @@ describe('isAllowedSignIn', () => {
       expect(entra({ email: 'ben@example.co.uk', tid: TENANT }, common)).toBe(false);
     });
 
-    it('defaults to the example.co.uk domain', () => {
+    it('has no default domain: Microsoft sign-in stays closed until one is set', () => {
       const e = { AUTH_MICROSOFT_ENTRA_ID_ISSUER: env.AUTH_MICROSOFT_ENTRA_ID_ISSUER };
-      expect(entra({ email: 'a@example.co.uk', tid: TENANT }, e)).toBe(true);
+      expect(entra({ email: 'a@example.co.uk', tid: TENANT }, e)).toBe(false);
     });
   });
 

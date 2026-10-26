@@ -17,6 +17,7 @@ jest.mock('node:dns/promises', () => ({ lookup: jest.fn(async (host) => (host ==
 const user = { email: 'ben@example.co.uk' };
 
 beforeEach(() => {
+  process.env.NEXT_PUBLIC_WEBSITE_URL = 'https://www.example.co.uk';
   process.env.AUTH_SECRET = 'test-secret-0123456789-abcdefghij';
   global.fetch = jest.fn();
 });

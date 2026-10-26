@@ -15,6 +15,10 @@ import path from 'node:path';
 import { readDocxBuffer } from '../src/lib/docx-server';
 import { createJobFromIntegration, integrationSchema, summarise } from '../src/lib/integration';
 import { checkIntegrationKey, integrationKeys } from '../src/lib/integration-auth';
+import { saveProfile } from '../src/lib/profile';
+import { TEST_PROFILE } from './fixtures/profile';
+
+beforeAll(() => saveProfile(TEST_PROFILE));
 import { fetchPublicFile, isPrivateAddress } from '../src/lib/remote-file';
 
 const docx = readFileSync(path.join(__dirname, 'fixtures/case-study.docx'));

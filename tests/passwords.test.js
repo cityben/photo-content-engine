@@ -44,7 +44,7 @@ describe('parseUsers / checkCredentials', () => {
   let users;
   beforeAll(async () => {
     const hash = await hashPassword(PASSWORD);
-    users = parseUsers(`Ben@example.co.uk|${hash}, broken-entry, other@x.com|notahash`);
+    users = parseUsers(`Ben@Example.co.uk|${hash}, broken-entry, other@x.com|notahash`);
   });
 
   it('parses valid entries and skips malformed ones', () => {

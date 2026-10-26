@@ -2,7 +2,7 @@
 
 Turn a finished job — photos and a few lines about it — into a LinkedIn post, an Instagram caption, a website case study, a Google Business post, keyword advice and next steps. Schedule the posts through Buffer, see them on a calendar, and track how they perform.
 
-Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the Vercel AI Gateway.
+Internal marketing tool for a building services company. Next.js 16 (App Router), shadcn/ui, AI SDK via the Vercel AI Gateway.
 
 ## What it does
 
@@ -26,7 +26,7 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 
 - **AI** — every call goes through the Vercel AI Gateway. Pick the model in **Settings → AI model**: a shortlist of image-capable models with a writing score, live prices per 1M tokens and an estimated cost per job, or any other gateway model. Each run records its model, tokens and cost; **Rewrite → Model** tries another model on one job, and **Restore previous** undoes it. Output is typed (zod schemas), so case-study fields use the website's exact sectors, services and divisions.
 - **Buffer** — Buffer's GraphQL API (`api.buffer.com`). Create, edit, delete and list posts; per-post and aggregated metrics (Buffer marks metrics experimental and refreshes them daily).
-- **Website** — the Acme Ltd website's v1 API: photo upload, case study drafts (`published: false`), and its own copy of Google Search Console, GA4 and Business Profile data.
+- **Website** — the company website's v1 API: photo upload, case study drafts (`published: false`), and its own copy of Google Search Console, GA4 and Business Profile data.
 - **Keywords** — real Search Console data when the website is connected. Without it, keyword suggestions are clearly marked "Estimate".
 - **DataForSEO** — market, competitor and reputation data (Google UK). Pay per request: pages read stored snapshots for free and only a **Refresh** spends, capped by `DATAFORSEO_MONTHLY_BUDGET`. See [docs/SETUP.md](docs/SETUP.md#dataforseo-market-and-reputation-data).
 
@@ -41,7 +41,7 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 
 ### Testing without real accounts
 
-With no `BUFFER_API_KEY` the app runs in **sandbox mode**: fake "Acme Ltd (sandbox)" LinkedIn and Instagram channels that queue, schedule, edit and delete like Buffer, and nothing leaves the app. Posts whose time passes show as published, with **simulated** stats (labelled everywhere) so the analytics screens can be tried.
+With no `BUFFER_API_KEY` the app runs in **sandbox mode**: fake "Company page (sandbox)" LinkedIn and Instagram channels that queue, schedule, edit and delete like Buffer, and nothing leaves the app. Posts whose time passes show as published, with **simulated** stats (labelled everywhere) so the analytics screens can be tried.
 
 To test on real Buffer without publishing: connect test or real channels in Buffer, **pause their queue** in Buffer, then schedule from here. Posts sit in Buffer, editable and deletable, and never publish.
 
@@ -50,7 +50,7 @@ To test on real Buffer without publishing: connect test or real channels in Buff
 ```bash
 npm install
 cp .env.example .env.local
-npm run hash-password -- you@example.co.uk   # paste the output into AUTH_USERS
+npm run hash-password -- you@example.com   # paste the output into AUTH_USERS
 openssl rand -base64 32                               # paste into AUTH_SECRET
 npm run dev
 ```
@@ -81,12 +81,12 @@ src/
 │   │                               analytics, keywords, reputation, insights, settings
 │   └── api/                        jobs, uploads, media, posts, channels, insights, market, auth
 ├── components/                     App shell, uploader, post rows, ui/ (shadcn, paper style)
-├── data/website-options.json       Website sectors, services, divisions (snapshot)
 └── lib/
     ├── ai.js                       AI Gateway: job content + growth insights
     ├── models.js                   Model shortlist, live prices, chosen model, run cost
     ├── jobs.js                     Job lifecycle: create, write, approve, schedule, send to website
     ├── content.js                  Sections and approval rules (shared with the browser)
+    ├── profile.js                  Company profile and website lists (from Settings, not code)
     ├── case-study-fields.js        The website's case study fields, completeness check
     ├── docx-map.js / docx-*.js     Word case study → fields by headings (the no-AI path)
     ├── integration.js              /api/v1 job creation for other systems
@@ -106,9 +106,9 @@ src/
 tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market, ideas, reports, leads, targets, agent
 ```
 
-### Updating website options
+### Company profile
 
-`src/data/website-options.json` is a snapshot of the website's `lib/projectOptions.js` and `data/service-catalog.json`. When the website adds a service page or sector, refresh it so the AI and the case-study form offer the new value.
+Nothing about the company lives in the code. **Settings → Company profile** holds the name, regions, about text and website domain, plus the website's case study lists (companies/divisions, sectors, project types, services, service pages) — the values case studies must match exactly. Upload them once as a JSON file (Download gives you the current one to edit), and update them when the website adds a sector or service page.
 
 ## Commands
 
@@ -135,4 +135,4 @@ tests/                              Jest: Buffer, website, sandbox, time, AI, mo
 | ✅ | Leads and outreach with approved drafts and follow-ups |
 | Next | Google Business posting through Buffer; sending outreach from Microsoft 365 once Entra sign-in is on |
 
-Private — Acme Ltd only.
+Private.

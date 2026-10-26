@@ -45,7 +45,7 @@ export function ApprovalBar({ job, section, data, dirty, onSave, onChanged, aiWr
     >
       <p className="flex items-start gap-2 text-sm text-gray-800">
         {approved ? (
-          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-700" />
+          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
         ) : (
           <CircleDot className="mt-0.5 size-4 shrink-0 text-gray-500" />
         )}

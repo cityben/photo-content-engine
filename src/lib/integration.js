@@ -10,6 +10,7 @@
 import { z } from "zod";
 
 import { mapCaseStudy } from "@/lib/docx-map";
+import { getOptions } from "@/lib/profile";
 import { readDocxBuffer } from "@/lib/docx-server";
 import { createJob, generateForJob, getJob, needsApproval } from "@/lib/jobs";
 import { saveImageFromBytes } from "@/lib/media";
@@ -83,7 +84,7 @@ export async function createJobFromIntegration(input, files = {}, { keyName } = 
   const doc = docBytes ? await readDocxBuffer(docBytes) : { blocks: [], photos: [] };
 
   const d = input.details || {};
-  const mapped = mapCaseStudy(doc.blocks, { title: input.title, ...d });
+  const mapped = mapCaseStudy(doc.blocks, { title: input.title, ...d }, await getOptions());
 
   const direct = Object.fromEntries(
     Object.entries(input.caseStudy || {}).filter(([k, v]) => DIRECT_FIELDS.includes(k) && present(v))

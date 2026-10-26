@@ -102,7 +102,7 @@ describe('channels across organisations', () => {
           channels:
             org === 'o1'
               ? [{ id: 'c1', name: 'cc', displayName: 'Acme Ltd', service: 'linkedin' }, { id: 'c2', name: 'cc-fb', service: 'facebook' }]
-              : [{ id: 'c3', name: 'cityair', service: 'googlebusiness', isDisconnected: true }],
+              : [{ id: 'c3', name: 'acmeair', service: 'googlebusiness', isDisconnected: true }],
         });
       });
     const channels = await listChannels();

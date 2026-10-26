@@ -10,7 +10,7 @@ const badgeVariants = cva(
       variant: {
         default: "bg-primary-soft text-primary",
         secondary: "bg-gray-100 text-gray-700",
-        success: "bg-marker-soft text-green-800",
+        success: "bg-marker-soft text-primary",
         destructive: "bg-destructive-soft text-destructive",
       },
     },

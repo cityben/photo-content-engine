@@ -25,7 +25,7 @@ function CheckResult({ check }) {
   const scopes = check.me?.scopes || [];
   const missing = NEEDED.filter((s) => !scopes.includes(s));
   return (
-    <div className="flex flex-col gap-1 rounded-md bg-marker-soft p-3 text-green-900">
+    <div className="flex flex-col gap-1 rounded-md bg-marker-soft p-3 text-gray-900">
       <p className="flex items-center gap-2 font-medium">
         <CheckCircle2 className="size-4" /> Connected to {check.apiBase}
         {check.me?.name ? ` as “${check.me.name}”` : ""}
@@ -85,10 +85,10 @@ export function WebsiteConnectionForm({ initial, initialCheck }) {
     >
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="website-url">Website address</Label>
-        <Input id="website-url" inputMode="url" autoComplete="off" spellCheck={false} placeholder={config.siteUrl} value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} />
+        <Input id="website-url" inputMode="url" autoComplete="off" spellCheck={false} placeholder={config.siteUrl || "https://www.example.co.uk"} value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} />
         <p className="text-xs text-gray-500">
-          The site that runs the new admin, e.g. <code className="font-mono">https://staging.example.co.uk</code> until launch, then <code className="font-mono">https://www.example.co.uk</code>. The API is at <code className="font-mono">/api/v1</code> on it.
-          {config.urlSource !== "settings" && ` Leave blank to use the default, ${config.apiBase}.`}
+          The site that runs the website admin — a staging domain until launch, then your main domain. The API is at <code className="font-mono">/api/v1</code> on it.
+          {config.urlSource !== "settings" && config.apiBase && ` Now using ${config.apiBase} from the environment.`}
         </p>
       </div>
       <div className="flex flex-col gap-1.5">

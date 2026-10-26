@@ -13,6 +13,10 @@ import { generateText } from 'ai';
 
 import { extractCaseStudyFromDocument } from '../src/lib/ai';
 import { completeness, normaliseCaseStudy, serviceLinksFor } from '../src/lib/case-study-fields';
+import { saveProfile } from '../src/lib/profile';
+import { TEST_OPTIONS, TEST_PROFILE } from './fixtures/profile';
+
+beforeAll(() => saveProfile(TEST_PROFILE));
 
 describe('case study fields', () => {
   it('turns old single values into the lists the website stores', () => {
@@ -32,7 +36,7 @@ describe('case study fields', () => {
   });
 
   it('builds service links from real website pages', () => {
-    expect(serviceLinksFor(['VRF / VRV Systems', 'Not a service'])).toBe('VRF / VRV Systems | /services/air-conditioning/vrf-vrv-systems');
+    expect(serviceLinksFor(['VRF / VRV Systems', 'Not a service'], TEST_OPTIONS.servicePages)).toBe('VRF / VRV Systems | /services/air-conditioning/vrf-vrv-systems');
   });
 });
 

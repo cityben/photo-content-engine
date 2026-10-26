@@ -36,7 +36,7 @@ function KpiChange({ kpi, invert }) {
   if (kpi?.change == null) return null;
   const good = invert ? kpi.change < 0 : kpi.change > 0;
   return (
-    <span className={good ? "text-green-700" : "text-destructive"}>
+    <span className={good ? "text-primary" : "text-destructive"}>
       {kpi.change > 0 ? "+" : ""}
       {Math.round(kpi.change)}% vs previous
     </span>

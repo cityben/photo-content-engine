@@ -20,15 +20,16 @@ function combine(text, hashtags = []) {
   return missing.length ? `${text.trim()}\n\n${missing.join(" ")}` : text.trim();
 }
 
-function Preview({ service, text, images }) {
+function Preview({ service, text, images, name }) {
   const instagram = service === "instagram";
+  const initials = (name || "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "·";
   return (
     <div className="rounded-lg bg-gray-50 p-4">
       <div className="mx-auto flex max-w-sm flex-col gap-3 rounded-lg bg-white p-4 shadow-paper">
         <div className="flex items-center gap-3">
-          <span className="flex size-9 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">CC</span>
+          <span className="flex size-9 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">{initials}</span>
           <div className="flex flex-col leading-tight">
-            <span className="text-sm font-semibold text-gray-900">{instagram ? "acme" : "Acme Ltd"}</span>
+            <span className="text-sm font-semibold text-gray-900">{name || "Your page"}</span>
             <span className="text-xs text-gray-500">{serviceInfo(service).label} preview</span>
           </div>
         </div>
@@ -161,7 +162,7 @@ export function SocialComposer({ service, data, onChange, job, social, posts, se
       </div>
 
       <div className="flex flex-col gap-4">
-        <Preview service={service} text={full} images={images.map((i) => i.url)} />
+        <Preview service={service} text={full} images={images.map((i) => i.url)} name={social?.channels?.find((c) => c.service === service)?.name} />
         <Button variant="outline" onClick={() => copy(full, `${info.label} post copied`)} disabled={!body}>
           {copied ? <Check /> : <Copy />} Copy post
         </Button>

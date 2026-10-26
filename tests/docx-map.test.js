@@ -3,6 +3,7 @@
  */
 
 import { mapCaseStudy, matchOption } from '../src/lib/docx-map';
+import { TEST_OPTIONS } from './fixtures/profile';
 
 const h = (text) => ({ type: 'heading', text });
 const p = (text) => ({ type: 'p', text });
@@ -32,7 +33,7 @@ describe('mapCaseStudy', () => {
     h('Team'),
     p('Two engineers and a supervisor.'),
   ];
-  const r = mapCaseStudy(doc);
+  const r = mapCaseStudy(doc, {}, TEST_OPTIONS);
 
   it('takes the title from the first heading', () => {
     expect(r.title).toBe('VRF Replacement — 30 South Colonnade');
@@ -70,7 +71,7 @@ describe('mapCaseStudy', () => {
   });
 
   it('flags values that are not website options', () => {
-    const odd = mapCaseStudy([h('Job'), p('Sector: Space Station')]);
+    const odd = mapCaseStudy([h('Job'), p('Sector: Space Station')], {}, TEST_OPTIONS);
     expect(odd.caseStudy.sector).toBe('');
     expect(odd.unmatchedValues).toEqual(['Sector "Space Station"']);
   });
@@ -94,7 +95,7 @@ describe('known values', () => {
   ];
 
   it('win over the document, which fills the gaps', () => {
-    const r = mapCaseStudy(doc, { title: 'VRF swap, Canary Wharf', client: 'Canary Wharf Group', sector: 'Commercial Office', area: 'Canary Wharf', county: 'London', services: ['VRF / VRV Systems'], completedOn: '2026-03', durationWeeks: 6 });
+    const r = mapCaseStudy(doc, { title: 'VRF swap, Canary Wharf', client: 'Canary Wharf Group', sector: 'Commercial Office', area: 'Canary Wharf', county: 'London', services: ['VRF / VRV Systems'], completedOn: '2026-03', durationWeeks: 6 }, TEST_OPTIONS);
     expect(r.caseStudy).toMatchObject({
       title: 'VRF swap, Canary Wharf',
       client: 'Canary Wharf Group',
@@ -110,7 +111,7 @@ describe('known values', () => {
   });
 
   it('work with no document at all', () => {
-    const r = mapCaseStudy([], { title: 'Plant room upgrade', sector: 'Healthcare', client: 'NHS Trust' });
+    const r = mapCaseStudy([], { title: 'Plant room upgrade', sector: 'Healthcare', client: 'NHS Trust' }, TEST_OPTIONS);
     expect(r.caseStudy).toMatchObject({ title: 'Plant room upgrade', sector: 'Healthcare', client: 'NHS Trust' });
   });
 });

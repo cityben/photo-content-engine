@@ -24,7 +24,7 @@ function Change({ kpi, invert }) {
   const up = kpi.change > 0;
   const good = invert ? !up : up;
   return (
-    <span className={cn("tabular-nums", kpi.change === 0 ? "text-gray-500" : good ? "text-green-700" : "text-destructive")}>
+    <span className={cn("tabular-nums", kpi.change === 0 ? "text-gray-500" : good ? "text-primary" : "text-destructive")}>
       {up ? "▲" : kpi.change < 0 ? "▼" : ""} {Math.abs(Math.round(kpi.change))}% vs previous
     </span>
   );
@@ -106,7 +106,7 @@ export default async function ReportsPage({ searchParams }) {
             <p className="max-w-[75ch] text-sm leading-6 text-gray-700">{summary.summary}</p>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-lg bg-marker-soft p-4">
-                <p className="mb-2 text-sm font-semibold text-green-900">Wins</p>
+                <p className="mb-2 text-sm font-semibold text-gray-900">Wins</p>
                 <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-gray-800">
                   {summary.wins.map((w) => (
                     <li key={w}>{w}</li>
@@ -294,7 +294,7 @@ export default async function ReportsPage({ searchParams }) {
                       {r.domain} {r.you && <Badge>You</Badge>}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatNumber(r.traffic)}</TableCell>
-                    <TableCell className={cn("text-right tabular-nums", r.trafficChange > 0 ? "text-green-700" : r.trafficChange < 0 ? "text-destructive" : "")}>
+                    <TableCell className={cn("text-right tabular-nums", r.trafficChange > 0 ? "text-primary" : r.trafficChange < 0 ? "text-destructive" : "")}>
                       {r.trafficChange == null ? "—" : `${r.trafficChange > 0 ? "+" : ""}${formatNumber(r.trafficChange)}`}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatNumber(r.top10)}</TableCell>

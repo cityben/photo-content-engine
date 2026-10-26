@@ -1,5 +1,5 @@
 /**
- * Acme Ltd website API client (cityben/company-website).
+ * Company website API client (the website's /api/v1).
  *
  * Uses the supported v1 API: POST {site}/api/v1/projects with an API key
  * from the website's /admin/api-keys page — role editor, scopes content:write
@@ -22,7 +22,6 @@ import { isPrivateAddress } from "@/lib/remote-file";
 import { hintFor, openSecret, sealSecret } from "@/lib/secret-box";
 import { collection } from "@/lib/store";
 
-const DEFAULT_SITE = "https://www.example.co.uk";
 const SETTINGS_KEY = "website-connection";
 
 /**
@@ -42,9 +41,11 @@ export function normaliseApiUrl(input) {
   return { siteUrl, apiBase: `${siteUrl}/api/v1` };
 }
 
-// Settings are read on most requests; keep them for 30s.
-let memo = null;
+// Settings are read on most requests; keep them for 30s. On globalThis so a
+// save from an API route also clears the copy pages use.
+const cache = (globalThis.__websiteConnectionCache ||= { memo: null });
 async function saved() {
+  const { memo } = cache;
   if (memo && Date.now() - memo.at < 30000) return memo.value;
   let value = null;
   try {
@@ -53,7 +54,7 @@ async function saved() {
   } catch (error) {
     console.error("[website] settings read failed:", error.message);
   }
-  memo = { at: Date.now(), value };
+  cache.memo = { at: Date.now(), value };
   return value;
 }
 
@@ -63,13 +64,16 @@ async function saved() {
  */
 export async function websiteConfig() {
   const s = await saved();
-  const envUrl = process.env.WEBSITE_API_BASE || process.env.NEXT_PUBLIC_WEBSITE_URL || DEFAULT_SITE;
-  let urls;
-  try {
-    urls = normaliseApiUrl(s?.apiUrl || envUrl);
-  } catch (error) {
-    console.error("[website] bad address, using the default:", error.message);
-    urls = normaliseApiUrl(DEFAULT_SITE);
+  const envUrl = process.env.WEBSITE_API_BASE || process.env.NEXT_PUBLIC_WEBSITE_URL || "";
+  // No address yet (or a bad one): not connected, rather than a guess.
+  let urls = { siteUrl: "", apiBase: "" };
+  const address = s?.apiUrl || envUrl;
+  if (address) {
+    try {
+      urls = normaliseApiUrl(address);
+    } catch (error) {
+      console.error("[website] bad address:", error.message);
+    }
   }
   const { siteUrl, apiBase } = urls;
   let apiKey = "";
@@ -94,11 +98,12 @@ export async function websiteConfig() {
 /** What the Settings page may show — never the key itself. */
 export async function websiteConfigPublic() {
   const { apiKey, ...rest } = await websiteConfig();
-  return { ...rest, configured: Boolean(apiKey) };
+  return { ...rest, configured: Boolean(apiKey && rest.apiBase) };
 }
 
 export async function websiteConfigured() {
-  return Boolean((await websiteConfig()).apiKey);
+  const c = await websiteConfig();
+  return Boolean(c.apiKey && c.apiBase);
 }
 
 /** The API must be on the public internet (this runs on our server). */
@@ -130,7 +135,7 @@ export async function saveWebsiteConnection({ apiUrl, apiKey, clearKey }, user) 
   const [doc] = await settings.find({ key: SETTINGS_KEY });
   if (doc) await settings.update(doc.id, { key: SETTINGS_KEY, value: next });
   else await settings.insert({ key: SETTINGS_KEY, value: next });
-  memo = null;
+  cache.memo = null;
   return websiteConfigPublic();
 }
 
@@ -156,7 +161,7 @@ export class WebsiteError extends Error {
 
 async function request(path, { method = "GET", body, headers = {} } = {}, config) {
   const { apiBase, apiKey: key } = config || (await websiteConfig());
-  if (!key) throw new WebsiteError("The website isn't connected. Add its address and API key in Settings.");
+  if (!key || !apiBase) throw new WebsiteError("The website isn't connected. Add its address and API key in Settings.");
 
   let res;
   try {
@@ -179,7 +184,7 @@ async function request(path, { method = "GET", body, headers = {} } = {}, config
     const detail = err.details ? ` (${Object.entries(err.details).map(([k, v]) => `${k}: ${v}`).join("; ")})` : "";
     const hint =
       res.status === 404 && !err.message
-        ? ` — ${apiBase} has no v1 API. Check the address in Settings points at the new website (e.g. https://staging.example.co.uk until launch).`
+        ? ` — ${apiBase} has no v1 API. Check the address in Settings points at the site that runs the website admin (e.g. a staging domain until launch).`
         : res.status === 401 && !err.message
           ? " — the API key was rejected."
           : "";
@@ -296,10 +301,11 @@ export async function checkWebsiteConnection(candidate) {
   let config = await websiteConfig();
   if (candidate) {
     const { siteUrl, apiBase } = candidate.apiUrl ? normaliseApiUrl(candidate.apiUrl) : config;
+    if (!apiBase) return { configured: false, ok: false, apiBase: "", error: "Enter the website address." };
     await assertPublicHost(apiBase);
     config = { ...config, siteUrl, apiBase, apiKey: candidate.apiKey || config.apiKey };
   }
-  if (!config.apiKey) return { configured: false, ok: false, apiBase: config.apiBase };
+  if (!config.apiKey || !config.apiBase) return { configured: false, ok: false, apiBase: config.apiBase };
   try {
     const me = await request("/me", {}, config);
     return { configured: true, ok: true, me, apiBase: config.apiBase };
@@ -310,7 +316,7 @@ export async function checkWebsiteConnection(candidate) {
 
 /* --- Reports (needs scope analytics:read on the key) -----------------------
    The website keeps its own copy of Google Search Console, GA4 and Business
-   Profile data (company-website docs/REPORTS.md). These give the
+   Profile data (the website's reports docs). These give the
    keyword and traffic screens real numbers instead of estimates. */
 
 function reportQuery({ from, to, ...rest } = {}) {

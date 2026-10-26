@@ -1,15 +1,10 @@
 /**
- * The website's case study fields, as its admin defines them
- * (company-website lib/admin/forms/projects.js and the API's
- * PROJECT_WRITABLE list in lib/apiResources.js). One list, used by the AI
+ * The website's case study fields, as its admin defines them (the
+ * website's case study editor form and its API's writable project fields). One list, used by the AI
  * schema, the Word import, the editor form and the completeness check.
  *
  * Shared by browser and server — no Node imports.
  */
-
-import options from "@/data/website-options.json";
-
-export const ALL_SERVICES = options.serviceGroups.flatMap((g) => g.services);
 
 /** The website stores these as lists (a job can span divisions, sectors, types). */
 export const LIST_FIELDS = ["company", "sector", "projectType", "services"];
@@ -86,8 +81,7 @@ export function completeness(raw = {}) {
 }
 
 /** "Label | /url" lines for the website's Suggested service links field. */
-export function serviceLinksFor(services = []) {
-  const pages = options.servicePages || [];
+export function serviceLinksFor(services = [], pages = []) {
   return asList(services)
     .map((s) => pages.find((p) => p.label === s))
     .filter(Boolean)

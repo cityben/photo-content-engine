@@ -1,5 +1,6 @@
 import { CheckCircle2, CircleAlert, Circle } from "lucide-react";
 
+import { CompanyProfileForm } from "@/components/company-profile";
 import { ModelPicker } from "@/components/model-picker";
 import { WebsiteConnectionForm } from "@/components/website-connection";
 import { ChannelChip } from "@/components/post-row";
@@ -7,6 +8,7 @@ import { PageHeader } from "@/components/shell/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { gatewayCredits, modelCatalog } from "@/lib/models";
+import { EMPTY_PROFILE, getProfile } from "@/lib/profile";
 import { accountBalance, dataforseoConfigured, isSandbox, monthlyBudget, monthSpend } from "@/lib/seo/dataforseo";
 import { setupStatus } from "@/lib/setup";
 import { checkStorage } from "@/lib/store";
@@ -30,7 +32,7 @@ function Env({ children }) {
 }
 
 function StatusIcon({ state }) {
-  if (state === "ok") return <CheckCircle2 className="size-5 shrink-0 text-green-700" />;
+  if (state === "ok") return <CheckCircle2 className="size-5 shrink-0 text-primary" />;
   if (state === "error") return <CircleAlert className="size-5 shrink-0 text-destructive" />;
   return <Circle className="size-5 shrink-0 text-gray-400" />;
 }
@@ -69,7 +71,7 @@ export default async function SettingsPage() {
       return typeof fallback === "function" ? fallback(error) : fallback;
     });
   const seoOn = dataforseoConfigured();
-  const [buffer, channels, website, websiteConfig, catalog, credits, storage, seoSpend, seoBalance] = await Promise.all([
+  const [buffer, channels, website, websiteConfig, catalog, credits, storage, seoSpend, seoBalance, profile] = await Promise.all([
     settle(socialStatus(), (e) => ({ mode: socialMode(), ok: false, error: e.message }), "buffer"),
     settle(listChannels(), [], "channels"),
     settle(checkWebsiteConnection(), (e) => ({ configured: true, ok: false, error: e.message }), "website"),
@@ -79,6 +81,7 @@ export default async function SettingsPage() {
     settle(checkStorage(), (e) => ({ ok: false, error: e.message }), "storage"),
     settle(monthSpend(), null, "dataforseo spend"),
     seoOn ? settle(accountBalance().then((balance) => ({ balance })), (e) => ({ error: e.message }), "dataforseo") : null,
+    settle(getProfile(), EMPTY_PROFILE, "profile"),
   ]);
 
   return (
@@ -110,6 +113,16 @@ export default async function SettingsPage() {
           <p className="mt-3 text-xs text-gray-500">
             Locally the gateway needs <Env>AI_GATEWAY_API_KEY</Env>; on Vercel it signs in automatically. <Env>AI_GATEWAY_MODEL</Env> sets the default until you pick one here.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Company profile</CardTitle>
+          <CardDescription>Who the content is written for, and the website&apos;s case study lists. Stored in your database — nothing about the company lives in the code.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CompanyProfileForm initial={profile} />
         </CardContent>
       </Card>
 
@@ -217,7 +230,7 @@ export default async function SettingsPage() {
           summary="Where jobs and photos are kept."
         >
           {!storage.ok && <p className="rounded-md bg-destructive-soft p-3 text-destructive">{storage.error}</p>}
-          {storage.ok && storage.mode === "mongodb" && <p className="text-green-800">Database reachable ({storage.database}).</p>}
+          {storage.ok && storage.mode === "mongodb" && <p className="text-primary">Database reachable ({storage.database}).</p>}
           <p>
             <span className="font-medium">Database:</span> {setup.storage.detail}
             {!setup.storage.done && <span className="block text-gray-600">{setup.storage.fix}</span>}
@@ -230,7 +243,7 @@ export default async function SettingsPage() {
 
         <Integration title="Sign-in" state={setup.auth.done ? "ok" : "error"} summary={setup.auth.detail}>
           <p className="text-gray-600">
-            Add people with <Env>npm run hash-password -- name@example.co.uk</Env> and put the line in <Env>AUTH_USERS</Env>. Sessions last 12 hours.
+            Add people with <Env>npm run hash-password -- name@example.com</Env> and put the line in <Env>AUTH_USERS</Env>. Sessions last 12 hours.
           </p>
         </Integration>
       </div>

@@ -343,7 +343,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
               <TabsTrigger key={t.id} value={t.id}>
                 {t.label}
                 {APPROVABLE.includes(t.section) && job.approvals?.[t.section] && !dirty.has(t.section) && (
-                  <CheckCircle2 aria-label="approved" className="size-3.5 text-green-700" />
+                  <CheckCircle2 aria-label="approved" className="size-3.5 text-primary" />
                 )}
                 {dirty.has(t.section || "brief") && <span aria-label="unsaved" className="size-1.5 rounded-full bg-marker" />}
               </TabsTrigger>

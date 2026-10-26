@@ -4,7 +4,7 @@
  * explicit. Snapshots are kept, so visibility can be charted over time.
  */
 
-import options from "@/data/website-options.json";
+import { getProfile } from "@/lib/profile";
 import { collection } from "@/lib/store";
 
 import { cleanDomain, keywordRow, organic } from "./analysis";
@@ -29,6 +29,7 @@ export const DEFAULT_SEEDS = [
 ];
 
 export async function getMarketSettings() {
+  const profile = await getProfile();
   let saved = {};
   try {
     const [doc] = await settings().find({ key: "market" });
@@ -37,11 +38,11 @@ export async function getMarketSettings() {
     console.error("[market] settings read failed:", error.message);
   }
   return {
-    domain: saved.domain || process.env.SITE_DOMAIN || "example.co.uk",
+    domain: saved.domain || process.env.SITE_DOMAIN || profile.domain || "",
     competitors: saved.competitors || [],
     seeds: saved.seeds?.length ? saved.seeds : DEFAULT_SEEDS,
     // Reputation: the name people search for and the Google Maps area.
-    brand: saved.brand || "Acme Ltd",
+    brand: saved.brand || profile.name || "",
     location: saved.location || "London,England,United Kingdom",
     rivals: saved.rivals || [],
     auditUrls: saved.auditUrls || [],
@@ -249,4 +250,3 @@ export const REFRESHERS = {
   trends: ({ keywords }) => refreshTrends(keywords || []),
 };
 
-export const SERVICE_SEEDS = options.serviceGroups.map((g) => g.services[0]);

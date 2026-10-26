@@ -137,7 +137,7 @@ export function NewJobForm({ idea = null }) {
               <Textarea
                 id="writeUp"
                 className="min-h-44"
-                placeholder="Replaced 4 end-of-life split systems with a Mitsubishi City Multi VRF system across floors 2-4 while the tenant stayed in. Weekend crane lift for the condensers. Pressure tested, commissioned, F-Gas records and O&Ms handed over…"
+                placeholder="Replaced 4 end-of-life split systems with a Mitsubishi VRF system across floors 2-4 while the tenant stayed in. Weekend crane lift for the condensers. Pressure tested, commissioned, F-Gas records and O&Ms handed over…"
                 value={writeUp}
                 onChange={(e) => setWriteUp(e.target.value)}
                 disabled={busy}

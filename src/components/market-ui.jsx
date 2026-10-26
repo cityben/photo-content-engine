@@ -127,7 +127,7 @@ function Spark({ values }) {
 
 export function Difficulty({ value }) {
   if (value == null) return <span className="text-gray-400">—</span>;
-  const tone = value < 30 ? "bg-green-600" : value < 60 ? "bg-amber-500" : "bg-red-500";
+  const tone = value < 30 ? "bg-primary" : value < 60 ? "bg-amber-500" : "bg-red-500";
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className="h-1.5 w-10 overflow-hidden rounded-full bg-gray-100">
@@ -148,7 +148,7 @@ function ExtraCell({ kind, value, row }) {
     return (
       <span className="inline-flex items-center gap-1 tabular-nums">
         {value}
-        {row.change === "up" && <span className="text-xs text-green-700" title="Moved up">▲</span>}
+        {row.change === "up" && <span className="text-xs text-primary" title="Moved up">▲</span>}
         {row.change === "down" && <span className="text-xs text-destructive" title="Moved down">▼</span>}
         {row.change === "new" && <Badge variant="secondary">new</Badge>}
       </span>
@@ -289,13 +289,13 @@ export function KeywordTable({ rows, extra = [], initialSort = "score", emptyTex
             <TableRow key={r.keyword}>
               <TableCell className="font-medium text-gray-900">{r.keyword}</TableCell>
               <TableCell className="text-right">
-                <span className={cn("inline-block min-w-8 rounded-full px-2 py-0.5 text-center text-xs font-semibold tabular-nums", r.score >= 60 ? "bg-marker-soft text-green-800" : r.score >= 40 ? "bg-gray-100 text-gray-800" : "text-gray-500")}>{r.score}</span>
+                <span className={cn("inline-block min-w-8 rounded-full px-2 py-0.5 text-center text-xs font-semibold tabular-nums", r.score >= 60 ? "bg-marker-soft text-primary" : r.score >= 40 ? "bg-gray-100 text-gray-800" : "text-gray-500")}>{r.score}</span>
               </TableCell>
               <TableCell className="text-right tabular-nums">{formatNumber(r.volume)}</TableCell>
               <TableCell>
                 <span className="inline-flex items-center gap-1.5">
                   <Spark values={r.monthly} />
-                  {r.trend != null && <span className={cn("text-xs tabular-nums", r.trend > 10 ? "text-green-700" : r.trend < -10 ? "text-destructive" : "text-gray-500")}>{r.trend > 0 ? "+" : ""}{r.trend}%</span>}
+                  {r.trend != null && <span className={cn("text-xs tabular-nums", r.trend > 10 ? "text-primary" : r.trend < -10 ? "text-destructive" : "text-gray-500")}>{r.trend > 0 ? "+" : ""}{r.trend}%</span>}
                 </span>
               </TableCell>
               <TableCell>

@@ -11,13 +11,14 @@ jest.mock('ai', () => ({
 import { generateText } from 'ai';
 
 import { cleanContent, generateJobContent } from '../src/lib/ai';
+import { TEST_OPTIONS } from './fixtures/profile';
 
 describe('cleanContent', () => {
   it('keeps only services the website knows and normalises hashtags', () => {
     const out = cleanContent({
       caseStudy: { services: ['VRF / VRV Systems', 'Made-up Service'] },
       linkedin: { text: 'x', hashtags: ['HVAC', '#HVAC', ' #London ', '#A', '#B', '#C', '#D'] },
-    });
+    }, TEST_OPTIONS);
     expect(out.caseStudy.services).toEqual(['VRF / VRV Systems']);
     expect(out.linkedin.hashtags).toEqual(['#HVAC', '#London', '#A', '#B', '#C']);
   });

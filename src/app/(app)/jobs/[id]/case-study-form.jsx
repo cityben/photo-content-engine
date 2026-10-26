@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { ExternalLink, Globe, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
-import options from "@/data/website-options.json";
 import { DocxImport } from "@/components/docx-import";
+import { useWebsiteOptions } from "@/components/options-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,6 @@ import { CASE_STUDY_SPEC, completeness, normaliseCaseStudy, serviceLinksFor, TEM
 import { api } from "@/lib/client-api";
 import { cn } from "@/lib/utils";
 
-const ALL_SERVICES = options.serviceGroups.flatMap((g) => g.services.map((s) => ({ value: s, group: g.division })));
 
 function Field({ id, label, hint, max, value, onChange, multiline, rows }) {
   const length = value?.length || 0;
@@ -132,6 +131,8 @@ function Section({ title, description, children }) {
 export function CaseStudyForm({ job, data, onChange, websiteConnected, dirty, onSave, approved }) {
   const router = useRouter();
   const [sending, setSending] = useState(false);
+  const options = useWebsiteOptions();
+  const ALL_SERVICES = options.serviceGroups.flatMap((g) => g.services.map((s) => ({ value: s, group: g.division })));
   const cs = normaliseCaseStudy(data || {});
   const set = (key) => (value) => onChange({ ...cs, [key]: value });
   const full = cs.template === "full";
@@ -291,7 +292,7 @@ export function CaseStudyForm({ job, data, onChange, websiteConnected, dirty, on
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
             <Label htmlFor="cs-links">Suggested service links</Label>
-            <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => set("seoServiceLinks")(serviceLinksFor(cs.services))} disabled={!cs.services?.length}>
+            <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => set("seoServiceLinks")(serviceLinksFor(cs.services, options.servicePages))} disabled={!cs.services?.length}>
               From services delivered
             </Button>
           </div>

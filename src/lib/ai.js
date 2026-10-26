@@ -10,18 +10,20 @@
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import options from "@/data/website-options.json";
 import { asList, normaliseCaseStudy, serviceLinksFor } from "@/lib/case-study-fields";
 import { getStoredImage } from "@/lib/media";
 import { getActiveModel, runCost } from "@/lib/models";
+import { allServices, companyLine, getOptions, getProfile, optionsOf } from "@/lib/profile";
 
-const ALL_SERVICES = options.serviceGroups.flatMap((g) => g.services);
-
-const VOICE = `You write for Acme Ltd, a privately-owned building services group trading since 2017 across London, Kent and the South East. Four divisions: Air Conditioning, Mechanical, Electrical, Facilities Management — one accountable contractor. Audience: facilities managers, building owners, main contractors and fit-out project managers. They are technical and sceptical.
-
-Voice: UK English. Active, terse, concrete. Name real kit, real deliverables (commissioning records, O&M manuals, F-Gas certificates, PPM schedules) where the job involves them. No hype. Never use: "seamless", "cutting-edge", "one-stop solution", "elevate", "unlock", "game-changer", "state-of-the-art".
+const STYLE = `Voice: UK English. Active, terse, concrete. Name real kit, real deliverables (commissioning records, O&M manuals, F-Gas certificates, PPM schedules) where the job involves them. No hype. Never use: "seamless", "cutting-edge", "one-stop solution", "elevate", "unlock", "game-changer", "state-of-the-art".
 
 Facts: use only what the photos and the write-up show. Never invent client names, figures, durations, savings, dates or certifications. If something isn't known, leave it out or leave the field empty.`;
+
+/** The company (from Settings → Company profile) plus the house style. */
+async function voice() {
+  const profile = await getProfile();
+  return `${companyLine(profile)}\n\n${STYLE}`;
+}
 
 /* --- Schemas ------------------------------------------------------------- */
 
@@ -38,14 +40,17 @@ const instagramSchema = z.object({
   altText: z.string().describe("Accessibility alt text for the main photo, under 200 characters, describing the work shown"),
 });
 
-const caseStudySchema = z.object({
+// An empty list can't be an enum; free text is filtered against the lists later.
+const oneOf = (list) => (list.length ? z.enum(list) : z.string());
+
+const caseStudySchemaFor = (options) => z.object({
   template: z.enum(["simple", "full"]).describe("'full' when there are real challenges or delivery highlights to tell; otherwise 'simple'"),
   title: z.string().describe("Job name, specific: what was done, where. Under 70 characters, e.g. 'Rochester Office CAT-B Fit-out'."),
   description: z.string().describe("Short summary, 1-2 sentences, under 300 characters. Shown on cards and in Google results."),
-  company: z.array(z.enum(options.companies)).describe("Every company that delivered the job"),
-  sector: z.array(z.enum(options.sectors)).describe("Project sector(s) — any that apply"),
-  projectType: z.array(z.enum(options.projectTypes)).describe("Type(s) of project — any that apply"),
-  services: z.array(z.string()).describe(`Services delivered, copied EXACTLY from this list (these decide which service pages show the case study): ${ALL_SERVICES.join(" | ")}`),
+  company: z.array(oneOf(options.companies)).describe("Every company/division that delivered the job"),
+  sector: z.array(oneOf(options.sectors)).describe("Project sector(s) — any that apply"),
+  projectType: z.array(oneOf(options.projectTypes)).describe("Type(s) of project — any that apply"),
+  services: z.array(z.string()).describe(`Services delivered, copied EXACTLY from this list (these decide which service pages show the case study): ${allServices(options).join(" | ")}`),
   client: z.string().describe("Client or building name only if stated, else empty"),
   area: z.string().describe("Town or borough, e.g. 'Rochester', else empty"),
   county: z.string().describe("Borough / county, e.g. 'Kent' or 'London', else empty"),
@@ -59,7 +64,7 @@ const caseStudySchema = z.object({
   testimonialQuote: z.string().describe("A client quote only if one is given word for word, else empty"),
   testimonialAuthor: z.string().describe("Who said it, if given, else empty"),
   testimonialRole: z.string().describe("Their role / company, if given, else empty"),
-  seoTitle: z.string().describe("Title tag, 50-60 characters, primary keyword near the start, e.g. 'Commercial HVAC & VRF Replacement Maidenhead | Acme Ltd'"),
+  seoTitle: z.string().describe("Title tag, 50-60 characters, primary keyword near the start, e.g. 'Commercial HVAC & VRF Replacement Maidenhead | Company Name'"),
   metaDescription: z.string().describe("Meta description, 140-155 characters, includes the primary keyword and location"),
   seoH1: z.string().describe("Recommended H1, e.g. 'TOR Building, Maidenhead: CAT-B Office HVAC and VRF Replacement'"),
   primaryKeyword: z.string().describe("Single primary keyword phrase, e.g. 'commercial HVAC replacement Maidenhead'"),
@@ -94,16 +99,16 @@ const googleBusinessSchema = z.object({
   text: z.string().describe("Google Business Profile 'What's new' post, 80-150 words, local and specific, ends with a call to action. No hashtags."),
 });
 
-export const SECTION_SCHEMAS = {
+export const sectionSchemas = (options) => ({
   linkedin: linkedinSchema,
   instagram: instagramSchema,
-  caseStudy: caseStudySchema,
+  caseStudy: caseStudySchemaFor(options),
   googleBusiness: googleBusinessSchema,
   seo: seoSchema,
   recommendations: z.array(recommendationSchema).describe("5-8 specific, actionable recommendations to get the most reach, engagement, enquiries and search traffic from THIS job"),
-};
+});
 
-export const SECTIONS = Object.keys(SECTION_SCHEMAS);
+export const SECTIONS = Object.keys(sectionSchemas(optionsOf()));
 
 /* --- Inputs -------------------------------------------------------------- */
 
@@ -151,7 +156,7 @@ function describeSearchData(searchData) {
     .slice(0, 60)
     .map((r) => `${r.key} | clicks ${r.clicks} | impr ${r.impressions} | ctr ${r.ctr != null ? (r.ctr * 100).toFixed(1) + "%" : "-"} | pos ${r.position != null ? r.position.toFixed(1) : "-"}${r.positionChange != null ? ` (${r.positionChange >= 0 ? "+" : ""}${r.positionChange.toFixed(1)})` : ""}`)
     .join("\n");
-  return `Real Google Search Console data for example.co.uk, last 90 days (query | clicks | impressions | CTR | average position (change vs previous period, + is better)):
+  return `Real Google Search Console data for the company website, last 90 days (query | clicks | impressions | CTR | average position (change vs previous period, + is better)):
 ${rows}
 
 Use this to pick keywords the site already gets impressions for but ranks 4-20 (quick wins), and explain ranking in plain English.`;
@@ -166,8 +171,10 @@ Use this to pick keywords the site already gets impressions for but ranks 4-20 (
  * Returns { content, run } — run records model, tokens and cost.
  */
 export async function generateJobContent(job, { sections = SECTIONS, searchData, instructions, current, model } = {}) {
-  const wanted = sections.filter((s) => SECTION_SCHEMAS[s]);
-  const schema = z.object(Object.fromEntries(wanted.map((s) => [s, SECTION_SCHEMAS[s]])));
+  const options = await getOptions();
+  const schemas = sectionSchemas(options);
+  const wanted = sections.filter((s) => schemas[s]);
+  const schema = z.object(Object.fromEntries(wanted.map((s) => [s, schemas[s]])));
 
   const images = (await Promise.all((job.images || []).slice(0, 6).map(imagePart))).filter(Boolean);
 
@@ -176,7 +183,7 @@ export async function generateJobContent(job, { sections = SECTIONS, searchData,
     "",
     describeSearchData(searchData),
     "",
-    `Website service pages (for internal links): ${options.serviceGroups.map((g) => `${g.division}: ${g.services.slice(0, 12).join(", ")}`).join(" / ")}`,
+    options.serviceGroups.length ? `Website service pages (for internal links): ${options.serviceGroups.map((g) => `${g.division}: ${g.services.slice(0, 12).join(", ")}`).join(" / ")}` : "",
     current && wanted.length < SECTIONS.length
       ? `\nThe other parts already written (keep consistent with them):\n${JSON.stringify(current, null, 1).slice(0, 4000)}`
       : "",
@@ -187,7 +194,7 @@ export async function generateJobContent(job, { sections = SECTIONS, searchData,
   const modelId = model || (await getActiveModel());
   const { output, usage, providerMetadata } = await generateText({
     model: modelId,
-    system: VOICE,
+    system: await voice(),
     maxOutputTokens: 8000,
     output: Output.object({ schema }),
     messages: [
@@ -207,11 +214,11 @@ export async function generateJobContent(job, { sections = SECTIONS, searchData,
     costUsd: await runCost(modelId, usage, providerMetadata),
     at: new Date().toISOString(),
   };
-  return { content: cleanContent(output), run };
+  return { content: cleanContent(output, options), run };
 }
 
 /** Keep values the website will accept; tidy hashtags. */
-export function cleanContent(content) {
+export function cleanContent(content, options = optionsOf()) {
   const out = { ...content };
   const tag = (t) => {
     const s = String(t).trim().replace(/\s+/g, "");
@@ -220,9 +227,17 @@ export function cleanContent(content) {
   if (out.linkedin) out.linkedin = { ...out.linkedin, hashtags: [...new Set(out.linkedin.hashtags.map(tag).filter(Boolean))].slice(0, 5) };
   if (out.instagram) out.instagram = { ...out.instagram, hashtags: [...new Set(out.instagram.hashtags.map(tag).filter(Boolean))].slice(0, 30) };
   if (out.caseStudy) {
-    const cs = normaliseCaseStudy({ ...out.caseStudy, services: asList(out.caseStudy.services).filter((s) => ALL_SERVICES.includes(s)) });
+    const known = allServices(options);
+    const inList = (list) => (v) => !list.length || list.includes(v);
+    const cs = normaliseCaseStudy({
+      ...out.caseStudy,
+      services: asList(out.caseStudy.services).filter((s) => known.includes(s)),
+      company: asList(out.caseStudy.company).filter(inList(options.companies)),
+      sector: asList(out.caseStudy.sector).filter(inList(options.sectors)),
+      projectType: asList(out.caseStudy.projectType).filter(inList(options.projectTypes)),
+    });
     if (cs.durationWeeks == null) delete cs.durationWeeks;
-    if (!cs.seoServiceLinks) cs.seoServiceLinks = serviceLinksFor(cs.services);
+    if (!cs.seoServiceLinks) cs.seoServiceLinks = serviceLinksFor(cs.services, options.servicePages);
     cs.testimonialEnabled = Boolean(cs.testimonialQuote);
     out.caseStudy = cs;
   }
@@ -250,7 +265,7 @@ const insightsSchema = z.object({
 export async function generateInsights(data) {
   const { output } = await generateText({
     model: await getActiveModel(),
-    system: `${VOICE}
+    system: `${await voice()}
 
 You are also a pragmatic B2B growth advisor for a contractor. Recommendations must be specific and doable by a small marketing team. Base every claim on the data provided; if data is missing or simulated, say so and give best-practice guidance instead.`,
     maxOutputTokens: 5000,
@@ -285,7 +300,7 @@ export async function generateContentIdeas(context) {
   const modelId = await getActiveModel();
   const { output, usage, providerMetadata } = await generateText({
     model: modelId,
-    system: `${VOICE}
+    system: `${await voice()}
 
 You are planning content for a building services contractor (air conditioning, mechanical, electrical, facilities management) in London, Kent and the South East. Their content is mostly case studies of real jobs with photos, plus service pages and short posts. Prefer ideas the team can make from jobs they actually do. Only use keywords that appear in the data; never invent search volumes. Skip anything already in the pipeline.`,
     maxOutputTokens: 5000,
@@ -316,7 +331,7 @@ export async function generateReportSummary(data) {
   const modelId = await getActiveModel();
   const { output, usage, providerMetadata } = await generateText({
     model: modelId,
-    system: `${VOICE}
+    system: `${await voice()}
 
 You write the monthly marketing report for the directors of a building services contractor. Use only numbers in the data; never invent figures. If a source is missing or simulated (sandbox), say so plainly. Compare with the previous period where the data gives one. Tie actions to enquiries.`,
     maxOutputTokens: 4000,
@@ -333,7 +348,7 @@ const outreachSchema = z.object({
   body: z
     .string()
     .describe(
-      "Plain-text email, 70-130 words. Open with something specific to their business or area, not flattery. One relevant piece of our work if a matching job is given (named only as given). One low-friction ask (a site survey or a 15-minute call). Sign off as {{sender_name}}, Acme Ltd. No attachments mentioned, no links except {{case_study_url}} if a job is cited."
+      "Plain-text email, 70-130 words. Open with something specific to their business or area, not flattery. One relevant piece of our work if a matching job is given (named only as given). One low-friction ask (a site survey or a 15-minute call). Sign off as {{sender_name}}, then the company name. No attachments mentioned, no links except {{case_study_url}} if a job is cited."
     ),
 });
 
@@ -353,9 +368,9 @@ export async function generateOutreach(lead, { jobs = [], kind = "intro", instru
   };
   const { output, usage, providerMetadata } = await generateText({
     model: modelId,
-    system: `${VOICE}
+    system: `${await voice()}
 
-You write short B2B outreach emails from Acme Ltd to businesses that may need air conditioning, mechanical, electrical or facilities management work. Cold email rules: about them first, one proof point, one small ask, no hard sell. Never claim work, clients, accreditations or results that aren't in the data. ${kind === "follow-up" ? "This is a polite follow-up to the previous email: shorter (40-80 words), adds one new useful point, no guilt-tripping." : ""}`,
+You write short B2B outreach emails from the company to businesses that may need its services. Cold email rules: about them first, one proof point, one small ask, no hard sell. Never claim work, clients, accreditations or results that aren't in the data. ${kind === "follow-up" ? "This is a polite follow-up to the previous email: shorter (40-80 words), adds one new useful point, no guilt-tripping." : ""}`,
     maxOutputTokens: 1500,
     output: Output.object({ schema: outreachSchema }),
     prompt: `${instructions ? `Extra instructions: ${instructions}\n\n` : ""}Data (JSON):\n${JSON.stringify(facts, null, 1)}`,
@@ -365,8 +380,8 @@ You write short B2B outreach emails from Acme Ltd to businesses that may need ai
 
 /* --- Word case study → website fields -------------------------------------- */
 
-const extractionSchema = z.object({
-  caseStudy: caseStudySchema,
+const extractionSchemaFor = (options) => z.object({
+  caseStudy: caseStudySchemaFor(options),
   fromDocument: z.array(z.string()).describe("Field names whose content came from the document's own words or facts"),
   written: z.array(z.string()).describe("Field names you wrote or classified from the document (e.g. SEO fields, summary, services ticked)"),
   notInDocument: z.array(z.string()).describe("Field names the document doesn't support, left empty — e.g. postcode, durationWeeks, testimonialQuote"),
@@ -381,15 +396,16 @@ const extractionSchema = z.object({
  */
 export async function extractCaseStudyFromDocument({ text, known = {}, model }) {
   const modelId = model || (await getActiveModel());
+  const options = await getOptions();
   const knownLines = Object.entries(known)
     .filter(([, v]) => (Array.isArray(v) ? v.length : v))
     .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
     .join("\n");
   const { output, usage, providerMetadata } = await generateText({
     model: modelId,
-    system: `${VOICE}
+    system: `${await voice()}
 
-You turn a case study written in Word into the fields of the Acme Ltd website's case study editor. The document may use any headings, order or wording — work out where each piece belongs:
+You turn a case study written in Word into the fields of the company website's case study editor. The document may use any headings, order or wording — work out where each piece belongs:
 - Scope of works = what the job involved; Key works delivered = the main works carried out; Key challenges & solutions; Project delivery highlights (programme, access, live-building working, H&S, handover documents); Project outcome & results.
 - Keep the document's facts and good phrasing; tidy it into short markdown paragraphs and bullets. Don't pad. Don't drop technical detail (kit, makes, models, capacities, certificates).
 - Classify company, sector, project type and services only from the fixed lists given. Tick every service genuinely delivered.
@@ -397,7 +413,7 @@ You turn a case study written in Word into the fields of the Acme Ltd website's 
 - Write the summary and SEO fields from the document's content.
 - Values under "Already known" are correct — use them as given.`,
     maxOutputTokens: 8000,
-    output: Output.object({ schema: extractionSchema }),
+    output: Output.object({ schema: extractionSchemaFor(options) }),
     prompt: `${knownLines ? `Already known (use as given):\n${knownLines}\n\n` : ""}Website service pages (for choosing services): ${options.serviceGroups.map((g) => `${g.division}: ${g.services.join(", ")}`).join(" / ")}
 
 The document:
@@ -405,7 +421,7 @@ The document:
 ${String(text).slice(0, 60000)}
 """`,
   });
-  const caseStudy = cleanContent({ caseStudy: output.caseStudy }).caseStudy;
+  const caseStudy = cleanContent({ caseStudy: output.caseStudy }, options).caseStudy;
   return {
     result: { ...output, caseStudy },
     run: { model: modelId, inputTokens: usage?.inputTokens ?? null, outputTokens: usage?.outputTokens ?? null, costUsd: await runCost(modelId, usage, providerMetadata) },
@@ -442,7 +458,7 @@ export async function generateFocusBrief({ findings, checks }) {
   const modelId = await getActiveModel();
   const { output, usage, providerMetadata } = await generateText({
     model: modelId,
-    system: `${VOICE}
+    system: `${await voice()}
 
 You are the growth lead for this contractor's marketing. You get the results of an automated check across their content, posting, search, competitors, reputation and leads. Decide what matters most this week. Prefer actions that lead to enquiries. Merge duplicates. Use only the findings given — no new facts or numbers.`,
     maxOutputTokens: 4000,

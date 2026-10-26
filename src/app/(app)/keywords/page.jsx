@@ -30,7 +30,7 @@ function Delta({ value, invert }) {
   if (!value) return <span className="text-gray-400">—</span>;
   const good = invert ? value < 0 : value > 0;
   return (
-    <span className={cn("tabular-nums", good ? "text-green-700" : "text-destructive")}>
+    <span className={cn("tabular-nums", good ? "text-primary" : "text-destructive")}>
       {value > 0 ? "+" : ""}
       {formatNumber(value)}
     </span>

@@ -9,13 +9,14 @@ import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { postingEnabled, socialMode } from "@/lib/social";
 
-function Brand() {
+// The company name comes from Settings → Company profile, not the code.
+function Brand({ name }) {
   return (
     <Link href="/" className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring">
-      <span aria-hidden className="h-7 w-1.5 rounded-full bg-marker" />
+      <span aria-hidden className="h-7 w-1.5 rounded-full bg-primary" />
       <span className="flex flex-col leading-tight">
-        <span className="text-xs font-bold uppercase tracking-wider text-primary">Acme Ltd</span>
-        <span className="text-xs text-gray-500">Content Engine</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-primary">{name || "Content Engine"}</span>
+        {name && <span className="text-xs text-gray-500">Content Engine</span>}
       </span>
     </Link>
   );
@@ -48,12 +49,12 @@ function UserFooter({ user }) {
   );
 }
 
-export function AppShell({ user, children }) {
+export function AppShell({ user, brandName, children }) {
   return (
     <TooltipProvider>
       <div className="flex min-h-dvh">
         <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-6 bg-white p-4 shadow-paper lg:flex print:hidden">
-          <Brand />
+          <Brand name={brandName} />
           <Button asChild className="w-full">
             <Link href="/jobs/new">
               <Plus /> New job
@@ -69,7 +70,7 @@ export function AppShell({ user, children }) {
           <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-white px-4 py-3 shadow-paper lg:hidden print:hidden">
             <div className="flex items-center gap-2">
               <MobileNav footer={<UserFooter user={user} />} />
-              <Brand />
+              <Brand name={brandName} />
             </div>
             <Button asChild size="sm">
               <Link href="/jobs/new">

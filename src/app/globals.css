@@ -5,8 +5,8 @@
  * Paper design system.
  * Hierarchy comes from shade steps and soft shadows, never stroke borders:
  *   page (#f5f5f5) → card (white) → sunk surface (gray-100) → hover (gray-200)
- * Brand: Acme Ltd navy (#003157) is the accent; green (#003157) is a
- * marker fill only — it fails contrast as text on light grounds.
+ * Accent: navy (#003157). "Marker" is the done/complete fill — navy, with a
+ * pale slate ground for success states. No green.
  */
 :root {
   --radius: 0.75rem;

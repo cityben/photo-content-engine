@@ -11,8 +11,8 @@ import { collection } from "@/lib/store";
 import { nextQueueSlot } from "@/lib/time";
 
 export const SANDBOX_CHANNELS = [
-  { id: "sandbox-linkedin", name: "Acme Ltd (sandbox)", service: "linkedin" },
-  { id: "sandbox-instagram", name: "acme (sandbox)", service: "instagram" },
+  { id: "sandbox-linkedin", name: "Company page (sandbox)", service: "linkedin" },
+  { id: "sandbox-instagram", name: "company (sandbox)", service: "instagram" },
 ].map((c) => ({ ...c, avatar: null, timezone: "Europe/London", paused: false, disconnected: false }));
 
 const posts = () => collection("sandbox_posts");

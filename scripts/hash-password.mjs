@@ -2,7 +2,7 @@
 /**
  * Create an AUTH_USERS entry for one person.
  *
- *   npm run hash-password -- ben@example.co.uk
+ *   npm run hash-password -- you@example.com
  *
  * Prompts for the password without echoing it, and prints `email|hash` to
  * add to AUTH_USERS (comma-separate multiple people).
@@ -47,7 +47,7 @@ function prompt(question) {
 
 const email = (process.argv[2] || "").trim().toLowerCase();
 if (!email.includes("@") || /[|,]/.test(email)) {
-  console.error("Usage: npm run hash-password -- you@example.co.uk");
+  console.error("Usage: npm run hash-password -- you@example.com");
   process.exit(1);
 }
 

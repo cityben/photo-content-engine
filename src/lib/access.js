@@ -6,10 +6,10 @@
  * A Microsoft account is let in when it comes from your own Entra ID tenant
  * (`tid`) — Entra email claims are not verified across tenants — and its email
  * is on AUTH_ALLOWED_EMAILS or its domain is on AUTH_ALLOWED_DOMAINS
- * (default: example.co.uk).
+ * (no default: Microsoft sign-in stays closed until one is set).
  */
 
-export const DEFAULT_ALLOWED_DOMAINS = "example.co.uk";
+export const DEFAULT_ALLOWED_DOMAINS = "";
 
 function csv(value) {
   return (value || "")

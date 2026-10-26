@@ -11,7 +11,7 @@ export const GET = route(async ({ request }) => {
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="example-${kind}-${month}.csv"`,
+      "Content-Disposition": `attachment; filename="growth-report-${kind}-${month}.csv"`,
       "Cache-Control": "no-store",
     },
   });

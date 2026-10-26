@@ -12,6 +12,10 @@ Everything is optional except sign-in: without keys the app runs in **sandbox mo
 | Website | Set in **Settings → Website** (or `WEBSITE_API_KEY`) | Case study drafts, Search Console keywords, traffic |
 | DataForSEO | `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD` | Competitors, keyword demand, trends, reviews, mentions, AI visibility, backlinks, page checks |
 
+## Company profile
+
+Settings → **Company profile**: your company name, where you work, the year you started, a few lines about the company, your website domain, and the website's case study lists (upload them as a JSON file). The AI writes from this, and case studies are matched against the lists. None of it is stored in the code.
+
 ## Local development
 
 Needs Node.js 20+.
@@ -37,10 +41,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 There's no sign-up page. Run this on your own machine (in the project folder) or in a GitHub Codespace — never paste a password anywhere it could be logged:
 
 ```bash
-npm run hash-password -- ben@example.co.uk
+npm run hash-password -- you@example.com
 ```
 
-It asks for the password twice (hidden, at least 12 characters) and prints a line like `ben@example.co.uk|scrypt.15.8.1.ikXZaRn...`. Put it in `AUTH_USERS`; separate several people with commas. To change a password run it again and replace that entry; to remove someone delete theirs. Redeploy after changing it.
+It asks for the password twice (hidden, at least 12 characters) and prints a line like `you@example.com|scrypt.15.8.1.ikXZaRn...`. Put it in `AUTH_USERS`; separate several people with commas. To change a password run it again and replace that entry; to remove someone delete theirs. Redeploy after changing it.
 
 5 wrong passwords for an email or IP within 15 minutes pauses sign-in for 15 minutes. Sessions last 12 hours.
 
@@ -53,7 +57,7 @@ Adds "Continue with Microsoft 365" under the password form.
 3. Copy the **Application (client) ID** → `AUTH_MICROSOFT_ENTRA_ID_ID`; put the **Directory (tenant) ID** into `AUTH_MICROSOFT_ENTRA_ID_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0`.
 4. **Certificates & secrets → New client secret** → `AUTH_MICROSOFT_ENTRA_ID_SECRET`.
 
-Only accounts from your tenant with an email on `AUTH_ALLOWED_DOMAINS` (default `example.co.uk`) or `AUTH_ALLOWED_EMAILS` get in.
+Only accounts from your tenant with an email on `AUTH_ALLOWED_DOMAINS` (no default — Microsoft sign-in stays closed until you set one) or `AUTH_ALLOWED_EMAILS` get in.
 
 ## AI (Vercel AI Gateway)
 
@@ -83,7 +87,7 @@ Instagram needs at least one photo per post (several become a carousel). Links g
    - scopes `content:write`, `media:write`, `analytics:read`
    - leave allowed origins empty (this app calls from its server)
 2. In this app, **Settings → Website**: enter the website address and paste the `cc_live_…` key, then **Test connection** and **Save**.
-   - Until launch day the new site (with the API) runs at `https://staging.example.co.uk`; `www.example.co.uk` is still the old site and answers 404. Change the address on launch day — no redeploy needed.
+   - Use the site that runs the website admin and its `/api/v1` — a staging domain until launch day, then your main domain. Change it in Settings when you switch; no redeploy needed.
    - The key is stored encrypted (AES-256-GCM, keyed from `AUTH_SECRET`) and never shown again. If you change `AUTH_SECRET`, paste the key again.
    - `WEBSITE_API_KEY` / `NEXT_PUBLIC_WEBSITE_URL` env vars still work as a fallback; anything saved in Settings wins. `WEBSITE_API_SECRET` isn't used and can be deleted.
 

@@ -4,7 +4,7 @@ export const SERVICES = {
   linkedin: { label: "LinkedIn", chip: "bg-sky-50 text-sky-900", dot: "bg-sky-600", limit: 3000 },
   instagram: { label: "Instagram", chip: "bg-rose-50 text-rose-900", dot: "bg-rose-500", limit: 2200 },
   facebook: { label: "Facebook", chip: "bg-blue-50 text-blue-900", dot: "bg-blue-600", limit: 63206 },
-  googlebusiness: { label: "Google Business", chip: "bg-emerald-50 text-emerald-900", dot: "bg-emerald-600", limit: 1500 },
+  googlebusiness: { label: "Google Business", chip: "bg-gray-100 text-gray-900", dot: "bg-gray-600", limit: 1500 },
   twitter: { label: "X", chip: "bg-gray-100 text-gray-900", dot: "bg-gray-800", limit: 280 },
   threads: { label: "Threads", chip: "bg-gray-100 text-gray-900", dot: "bg-gray-700", limit: 500 },
   tiktok: { label: "TikTok", chip: "bg-fuchsia-50 text-fuchsia-900", dot: "bg-fuchsia-600", limit: 2200 },

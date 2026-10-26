@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "Photo Content Engine — Acme Ltd",
+  title: "Content Engine",
   description: "Turn job site photos into ready-to-post marketing content.",
 };
 

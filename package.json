@@ -1,7 +1,7 @@
 {
   "name": "photo-content-engine",
   "version": "1.0.0",
-  "description": "AI-powered job photo → marketing content generator + lead finder for Acme Ltd",
+  "description": "AI-powered job photo → marketing content generator + lead finder",
   "main": "src/app/page.jsx",
   "scripts": {
     "dev": "next dev",

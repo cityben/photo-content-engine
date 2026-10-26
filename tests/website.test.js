@@ -1,10 +1,11 @@
 /**
- * Website v1 API client: matches company-website's contract (fetch mocked)
+ * Website v1 API client: matches the website's v1 contract (fetch mocked)
  */
 
 import { createCaseStudyDraft } from '../src/lib/website-api';
 
 beforeEach(() => {
+  process.env.NEXT_PUBLIC_WEBSITE_URL = 'https://www.example.co.uk';
   process.env.WEBSITE_API_KEY = 'cc_live_test';
   global.fetch = jest.fn();
 });

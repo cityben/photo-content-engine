@@ -495,7 +495,7 @@ async function HealthTab() {
                       {p.url.replace(/^https:\/\/(www\.)?/, "")}
                     </a>
                     {p.score != null && (
-                      <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums", p.score >= 90 ? "bg-marker-soft text-green-800" : p.score >= 70 ? "bg-gray-100 text-gray-800" : "bg-destructive-soft text-destructive")}>
+                      <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums", p.score >= 90 ? "bg-marker-soft text-primary" : p.score >= 70 ? "bg-gray-100 text-gray-800" : "bg-destructive-soft text-destructive")}>
                         {p.score}/100
                       </span>
                     )}

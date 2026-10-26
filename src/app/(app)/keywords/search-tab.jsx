@@ -144,7 +144,7 @@ export async function SearchTab({ days }) {
                         {r.positionChange == null ? (
                           "—"
                         ) : (
-                          <span className={r.positionChange > 0 ? "text-green-700" : r.positionChange < 0 ? "text-destructive" : ""}>
+                          <span className={r.positionChange > 0 ? "text-primary" : r.positionChange < 0 ? "text-destructive" : ""}>
                             {r.positionChange > 0 ? "▲" : r.positionChange < 0 ? "▼" : ""} {Math.abs(r.positionChange).toFixed(1)}
                           </span>
                         )}

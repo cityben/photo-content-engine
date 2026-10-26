@@ -15,8 +15,6 @@
  * also works with known values alone.
  */
 
-import options from "@/data/website-options.json";
-
 const SECTION_RULES = [
   ["scopeOfWorks", /scope/i],
   ["keyChallenges", /challenge|problem|constraint|difficult/i],
@@ -38,8 +36,6 @@ const FIELD_RULES = [
   ["durationWeeks", /^(duration|programme|program|timescale)$/i],
   ["title", /^(project|project name|title|project title)$/i],
 ];
-
-const ALL_SERVICES = options.serviceGroups.flatMap((g) => g.services);
 
 const norm = (s) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, " ").trim();
 
@@ -95,7 +91,14 @@ function parseMonth(value) {
 const KNOWN_KEYS = ["title", "client", "location", "sector", "company", "projectType", "completedOn", "durationWeeks"];
 const present = (v) => (Array.isArray(v) ? v.length > 0 : v !== undefined && v !== null && String(v).trim() !== "");
 
-export function mapCaseStudy(blocks = [], known = {}) {
+const NO_OPTIONS = { companies: [], sectors: [], projectTypes: [], serviceGroups: [] };
+
+/**
+ * `options` are the website's lists (Settings → Company profile); values are
+ * only kept when they match one.
+ */
+export function mapCaseStudy(blocks = [], known = {}, options = NO_OPTIONS) {
+  const ALL_SERVICES = (options.serviceGroups || []).flatMap((g) => g.services);
   const fields = {};
   const sections = {};
   const extra = [];

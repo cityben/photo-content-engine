@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, FileText, Info, Loader2, Sparkles } from "lucide-react";
 
+import { useWebsiteOptions } from "@/components/options-provider";
 import { uploadPhoto } from "@/components/photo-uploader";
 import { Button } from "@/components/ui/button";
 import { CASE_STUDY_SPEC } from "@/lib/case-study-fields";
@@ -49,6 +50,7 @@ export function DocxImport({ onImported, known = {}, withPhotos = true, maxPhoto
   const inputRef = useRef(null);
   const [state, setState] = useState(null); // { stage, message, summary, error }
   const [useAi, setUseAi] = useState(true);
+  const options = useWebsiteOptions();
 
   const handle = async (file) => {
     if (!file) return;
@@ -56,7 +58,7 @@ export function DocxImport({ onImported, known = {}, withPhotos = true, maxPhoto
     try {
       const { blocks, photos, skippedImages } = await readDocx(file);
       if (!blocks.length) throw new Error("No text found in that document.");
-      const mapped = mapCaseStudy(blocks, known);
+      const mapped = mapCaseStudy(blocks, known, options);
 
       let ai = null;
       let aiError = null;
@@ -167,7 +169,7 @@ function ImportSummary({ summary: s, withPhotos }) {
   return (
     <div role="status" className="flex flex-col gap-2 rounded-lg bg-marker-soft p-3 text-sm text-gray-800">
       <p className="flex flex-wrap items-center gap-2 font-medium">
-        <CheckCircle2 className="size-4 text-green-700" /> Imported {s.file}
+        <CheckCircle2 className="size-4 text-primary" /> Imported {s.file}
         {c && <span className="rounded-full bg-white px-2 py-0.5 text-xs tabular-nums text-gray-700">{c.percent}% of the website case study filled</span>}
       </p>
       {s.aiError && (

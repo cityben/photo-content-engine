@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import options from "@/data/website-options.json";
 import { extractCaseStudyFromDocument } from "@/lib/ai";
 import { readJson, route } from "@/lib/api";
-import { ALL_SERVICES, asList, completeness, normaliseCaseStudy } from "@/lib/case-study-fields";
+import { asList, completeness, normaliseCaseStudy } from "@/lib/case-study-fields";
 import { matchOption } from "@/lib/docx-map";
+import { allServices, getOptions } from "@/lib/profile";
 
 export const maxDuration = 120;
 
@@ -14,11 +14,11 @@ const schema = z.object({
 });
 
 /** Known values (form, or another system) are facts: they replace the AI's. */
-function applyKnown(cs, known = {}) {
+function applyKnown(cs, known = {}, options) {
   const out = { ...cs };
   const has = (v) => (Array.isArray(v) ? v.length : v != null && String(v).trim() !== "");
   for (const k of ["title", "client", "area", "county", "postcode"]) if (has(known[k])) out[k] = String(known[k]).trim();
-  const lists = { company: options.companies, sector: options.sectors, projectType: options.projectTypes, services: ALL_SERVICES };
+  const lists = { company: options.companies, sector: options.sectors, projectType: options.projectTypes, services: allServices(options) };
   for (const [k, list] of Object.entries(lists)) {
     if (!has(known[k])) continue;
     const matched = asList(known[k]).map((v) => matchOption(String(v), list)).filter(Boolean);
@@ -36,6 +36,6 @@ function applyKnown(cs, known = {}) {
 export const POST = route(async ({ request }) => {
   const { text, known } = await readJson(request, schema);
   const { result, run } = await extractCaseStudyFromDocument({ text, known });
-  const caseStudy = applyKnown(result.caseStudy, known);
+  const caseStudy = applyKnown(result.caseStudy, known, await getOptions());
   return { ...result, caseStudy, completeness: completeness(caseStudy), run };
 });

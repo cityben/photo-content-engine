@@ -25,7 +25,7 @@ const ago = (iso) => {
 
 function StatusIcon({ status }) {
   if (status === "running") return <Loader2 className="size-4 animate-spin text-primary" />;
-  if (status === "ok") return <CheckCircle2 className="size-4 text-green-700" />;
+  if (status === "ok") return <CheckCircle2 className="size-4 text-primary" />;
   if (status === "warn") return <AlertTriangle className="size-4 text-amber-600" />;
   if (status === "bad" || status === "error") return <XCircle className="size-4 text-destructive" />;
   if (status === "skipped") return <CircleDashed className="size-4 text-gray-400" />;
@@ -33,7 +33,7 @@ function StatusIcon({ status }) {
 }
 
 function Score({ value }) {
-  const tone = value >= 80 ? "text-green-700" : value >= 55 ? "text-amber-600" : "text-destructive";
+  const tone = value >= 80 ? "text-primary" : value >= 55 ? "text-amber-600" : "text-destructive";
   return (
     <div className="flex size-20 shrink-0 flex-col items-center justify-center rounded-full bg-gray-50">
       <span className={cn("text-2xl font-bold tabular-nums", tone)}>{value}</span>
