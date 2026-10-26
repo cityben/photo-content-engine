@@ -12,6 +12,7 @@ import {
   Lightbulb,
   Search,
   Settings,
+  Handshake,
   ShieldCheck,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ export const NAV = [
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/keywords", label: "Search & market", icon: Search },
   { href: "/reputation", label: "Reputation & authority", icon: ShieldCheck },
+  { href: "/leads", label: "Leads", icon: Handshake },
   { href: "/insights", label: "Growth insights", icon: Lightbulb },
   { href: "/reports", label: "Monthly report", icon: FileText },
   { href: "/settings", label: "Settings", icon: Settings },

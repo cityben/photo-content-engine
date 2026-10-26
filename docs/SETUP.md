@@ -100,6 +100,7 @@ What each page uses:
 - **Search & market → Competitors**: Labs competitors_domain, domain_rank_overview, serp_competitors, domain_intersection (keyword gap), ranked_keywords.
 - **Search & market → Keyword ideas / Trends**: Labs keyword_ideas (with your seed keywords) and Google Trends explore (UK, 5 years).
 - **Reputation & authority**: Business Data (Google Business profile, Google and Trustpilot reviews), Content Analysis (brand mentions and tone), AI Optimization LLM mentions (Google AI Overviews UK; ChatGPT data is US-only), Backlinks summary and domain intersection (link prospects), OnPage instant pages (page checks).
+- **Leads → Find leads**: Business Data business_listings search (Google Maps listings by category within a radius), about $0.03 per search of up to 100 businesses.
 
 ## Other systems (API keys)
 

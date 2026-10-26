@@ -16,6 +16,7 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 | **Analytics** | Impressions, reactions, engagement per channel, top posts (Buffer); website users, Google clicks, average position, enquiries and visits from social (website reports) |
 | **Search & market** | *Your search*: real Search Console queries with position, change, CTR, a plain-English "why" and quick wins. *Competitors*: who Google sees as your competitors, niche leaders for your service keywords, traffic and visibility side by side over time, keyword gaps (what they rank for and you don't) and each competitor's best pages. *Keyword ideas*: UK demand around your services scored by volume, value, buying intent, difficulty and momentum. *Trends*: five-year Google Trends seasonality |
 | **Reputation & authority** | Google Business profile vs local rivals, Google and Trustpilot reviews (unanswered low ratings flagged), brand mentions across the web with tone, whether Google AI Overviews and ChatGPT cite you vs competitors, backlink authority, link prospects (sites linking to two competitors but not you) and page checks for your key pages |
+| **Leads** | Find businesses that buy M&E and FM work (property managers, commercial agents, main contractors, occupiers) from Google Maps around London and Kent towns, scored for fit. Track them New → Contacted → Replied → Meeting → Won/Lost with a call/notes log. AI writes a personalised intro or follow-up citing your real jobs; **a person approves it** before it can be copied, opened in email or marked sent, and marking it sent sets a follow-up five working days out. Nothing is emailed by this tool |
 | **Growth insights** | AI reads all of the above and gives a summary, a prioritised to-do list and content ideas |
 | **Monthly report** | One month on one page: website KPIs with change vs the previous period, top queries and landing pages, social, work shipped (jobs, case studies, pipeline), market and reputation snapshots, tool running costs. **Write summary** adds an AI directors' summary (headline, wins, concerns, next month's actions) from those numbers only. **Download PDF** (print layout) and **CSV** exports |
 | **Settings** | AI model picker (scores, live prices, cost per job, gateway credit) and live connection checks for Buffer, the website, storage and sign-in |
@@ -93,11 +94,12 @@ src/
     ├── schedule.js / autofill.js   Publishing days and times, calendar auto-fill
     ├── ideas.js / planner.js       Content pipeline and the AI planner
     ├── reports.js                  Monthly report data, CSV export
+    ├── leads.js                    Lead search, pipeline, outreach drafts and approval
     ├── growth.js                   Analytics + insights data
     ├── store/                      MongoDB, or in-memory for local dev
     ├── media.js                    Vercel Blob or local photo storage
     └── time.js                     UK-time scheduling helpers
-tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market, ideas, reports
+tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market, ideas, reports, leads
 ```
 
 ### Updating website options
@@ -126,6 +128,7 @@ tests/                              Jest: Buffer, website, sandbox, time, AI, mo
 | ✅ | Competitors, keyword gaps, ideas, trends, reviews, mentions, AI visibility, backlinks, page checks (DataForSEO) |
 | ✅ | Content pipeline linked to jobs and search data |
 | ✅ | Monthly report with AI summary, PDF and CSV |
-| Next | Leads and outreach |
+| ✅ | Leads and outreach with approved drafts and follow-ups |
+| Next | Google Business posting through Buffer; sending outreach from Microsoft 365 once Entra sign-in is on |
 
 Private — Acme Ltd only.

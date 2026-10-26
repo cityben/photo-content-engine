@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ApprovalError } from "@/lib/jobs";
+import { DraftNotApproved } from "@/lib/leads";
 import { DataForSeoError } from "@/lib/seo/dataforseo";
 import { requireUser } from "@/lib/session";
 import { BufferError } from "@/lib/social/buffer";
@@ -26,7 +27,7 @@ export function route(handler) {
           { status: 400 }
         );
       }
-      if (error instanceof PostingDisabledError || error instanceof ApprovalError) {
+      if (error instanceof PostingDisabledError || error instanceof ApprovalError || error instanceof DraftNotApproved) {
         return Response.json({ error: error.message }, { status: 403 });
       }
       if (error instanceof BufferError || error instanceof WebsiteError || error instanceof DataForSeoError) {

@@ -313,3 +313,40 @@ You write the monthly marketing report for the directors of a building services 
   });
   return { summary: output, run: { model: modelId, costUsd: await runCost(modelId, usage, providerMetadata), at: new Date().toISOString() } };
 }
+
+/* --- Outreach ------------------------------------------------------------- */
+
+const outreachSchema = z.object({
+  subject: z.string().describe("Email subject, under 60 characters, specific to them — no clickbait, no 'Quick question'"),
+  body: z
+    .string()
+    .describe(
+      "Plain-text email, 70-130 words. Open with something specific to their business or area, not flattery. One relevant piece of our work if a matching job is given (named only as given). One low-friction ask (a site survey or a 15-minute call). Sign off as {{sender_name}}, Acme Ltd. No attachments mentioned, no links except {{case_study_url}} if a job is cited."
+    ),
+});
+
+/**
+ * Personalised outreach for a lead. `jobs` are our real jobs (title,
+ * sector, services) to cite; `kind` is "intro" or "follow-up". The draft
+ * still has to be approved before it can be sent. Returns { draft, run }.
+ */
+export async function generateOutreach(lead, { jobs = [], kind = "intro", instructions, previous } = {}) {
+  const modelId = await getActiveModel();
+  const facts = {
+    business: { name: lead.name, category: lead.category, area: lead.city || lead.address, website: lead.website, googleRating: lead.rating, googleReviews: lead.reviews },
+    contact: lead.contact?.name ? { name: lead.contact.name, role: lead.contact.role } : "unknown — address them by business, not 'Sir/Madam'",
+    ourRelevantJobs: jobs.slice(0, 5),
+    notes: lead.notes || undefined,
+    previousEmail: previous ? { subject: previous.subject, body: previous.body, sentAt: previous.sentAt } : undefined,
+  };
+  const { output, usage, providerMetadata } = await generateText({
+    model: modelId,
+    system: `${VOICE}
+
+You write short B2B outreach emails from Acme Ltd to businesses that may need air conditioning, mechanical, electrical or facilities management work. Cold email rules: about them first, one proof point, one small ask, no hard sell. Never claim work, clients, accreditations or results that aren't in the data. ${kind === "follow-up" ? "This is a polite follow-up to the previous email: shorter (40-80 words), adds one new useful point, no guilt-tripping." : ""}`,
+    maxOutputTokens: 1500,
+    output: Output.object({ schema: outreachSchema }),
+    prompt: `${instructions ? `Extra instructions: ${instructions}\n\n` : ""}Data (JSON):\n${JSON.stringify(facts, null, 1)}`,
+  });
+  return { draft: output, run: { model: modelId, costUsd: await runCost(modelId, usage, providerMetadata) } };
+}
