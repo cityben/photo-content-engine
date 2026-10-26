@@ -89,3 +89,28 @@ describe('deletePost', () => {
     expect(lastBody().variables.input).toEqual({ id: 'p1' });
   });
 });
+
+describe('channels across organisations', () => {
+  it('lists every channel of every service in every organisation', async () => {
+    delete process.env.BUFFER_ORGANIZATION_ID;
+    const { listChannels } = require('../src/lib/social');
+    global.fetch
+      .mockResolvedValueOnce(ok({ account: { id: 'a', email: 'ben@x', organizations: [{ id: 'o1', name: 'Acme Ltd' }, { id: 'o2', name: 'Acme Air' }] } }))
+      .mockImplementation(async (_url, init) => {
+        const org = JSON.parse(init.body).variables.input.organizationId;
+        return ok({
+          channels:
+            org === 'o1'
+              ? [{ id: 'c1', name: 'cc', displayName: 'Acme Ltd', service: 'linkedin' }, { id: 'c2', name: 'cc-fb', service: 'facebook' }]
+              : [{ id: 'c3', name: 'cityair', service: 'googlebusiness', isDisconnected: true }],
+        });
+      });
+    const channels = await listChannels();
+    expect(channels.map((c) => [c.id, c.service, c.organizationName, c.canCompose])).toEqual([
+      ['c1', 'linkedin', 'Acme Ltd', true],
+      ['c2', 'facebook', 'Acme Ltd', false],
+      ['c3', 'googlebusiness', 'Acme Air', false],
+    ]);
+    expect(channels[2].disconnected).toBe(true);
+  });
+});

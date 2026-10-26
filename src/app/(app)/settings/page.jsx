@@ -11,7 +11,7 @@ import { accountBalance, dataforseoConfigured, isSandbox, monthlyBudget, monthSp
 import { setupStatus } from "@/lib/setup";
 import { checkStorage } from "@/lib/store";
 import { listChannels, socialMode, status as socialStatus } from "@/lib/social";
-import { money } from "@/lib/ui-labels";
+import { money, serviceInfo } from "@/lib/ui-labels";
 import { checkWebsiteConnection, websiteConfigPublic } from "@/lib/website-api";
 
 export const dynamic = "force-dynamic";
@@ -115,19 +115,34 @@ export default async function SettingsPage() {
           {buffer.account && (
             <p>
               Signed in as <span className="font-medium">{buffer.account.email}</span>
-              {buffer.account.organizations?.length > 1 && ` · using "${buffer.account.organizations[0].name}" (set BUFFER_ORGANIZATION_ID to change)`}
+              {buffer.account.organizations?.length > 1 && ` · ${buffer.account.organizations.length} organisations, all shown`}
             </p>
           )}
-          <div className="flex flex-wrap gap-2">
-            {channels.map((c) => (
-              <span key={c.id} className="inline-flex items-center gap-1.5">
-                <ChannelChip service={c.service} name={c.name} />
-                {c.paused && <Badge variant="secondary">queue paused</Badge>}
-                {c.disconnected && <Badge variant="destructive">reconnect in Buffer</Badge>}
-              </span>
-            ))}
-            {!channels.length && <span className="text-gray-500">No LinkedIn or Instagram channels found.</span>}
-          </div>
+          {socialMode() === "sandbox" && (
+            <p className="rounded-md bg-gray-50 p-3 text-gray-700">
+              Sandbox: these are pretend channels. Add <Env>BUFFER_API_KEY</Env> in Vercel and redeploy to see your real Buffer accounts.
+            </p>
+          )}
+          {Object.entries(Object.groupBy(channels, (c) => c.organizationName || "")).map(([org, list]) => (
+            <div key={org || "default"} className="flex flex-col gap-1.5">
+              {org && <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{org}</p>}
+              <ul className="flex flex-col gap-1.5">
+                {list.map((c) => (
+                  <li key={c.id} className="flex flex-wrap items-center gap-1.5">
+                    <ChannelChip service={c.service} name={c.name} />
+                    <span className="text-xs text-gray-500">{serviceInfo(c.service).label}</span>
+                    {c.canCompose ? <Badge variant="success">jobs post here</Badge> : <Badge variant="secondary">calendar + stats</Badge>}
+                    {c.paused && <Badge variant="secondary">queue paused</Badge>}
+                    {c.disconnected && <Badge variant="destructive">reconnect in Buffer</Badge>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          {!channels.length && <p className="text-gray-500">{buffer.ok ? "No channels connected in Buffer yet." : "Couldn't load channels."}</p>}
+          {channels.some((c) => !c.canCompose) && (
+            <p className="text-xs text-gray-500">Posts on every channel show on the calendar and in stats. Jobs write and schedule LinkedIn and Instagram posts.</p>
+          )}
           <ol className="list-decimal space-y-1 pl-5 text-gray-600">
             <li>In Buffer, connect your LinkedIn page and Instagram business account.</li>
             <li>Buffer → Settings → API → create a key. Add it as <Env>BUFFER_API_KEY</Env>.</li>

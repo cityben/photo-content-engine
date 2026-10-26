@@ -107,33 +107,47 @@ export async function getAccount() {
   return data.account;
 }
 
-export async function resolveOrganizationId() {
-  if (process.env.BUFFER_ORGANIZATION_ID) return process.env.BUFFER_ORGANIZATION_ID;
+/**
+ * Organisations to read. BUFFER_ORGANIZATION_ID pins one; otherwise every
+ * organisation on the account — channels can live in any of them.
+ */
+export async function listOrganizations() {
+  if (process.env.BUFFER_ORGANIZATION_ID) return [{ id: process.env.BUFFER_ORGANIZATION_ID, name: null }];
   const account = await getAccount();
-  const org = account.organizations?.[0];
-  if (!org) throw new BufferError("This Buffer account has no organization.");
-  return org.id;
+  if (!account.organizations?.length) throw new BufferError("This Buffer account has no organization.");
+  return account.organizations;
+}
+
+export async function resolveOrganizationId() {
+  return (await listOrganizations())[0].id;
 }
 
 export async function listChannels() {
-  const organizationId = await resolveOrganizationId();
-  const data = await gql(
-    `query Channels($input: ChannelsInput!) {
-      channels(input: $input) {
-        id name displayName service avatar timezone isQueuePaused isDisconnected isLocked
-      }
-    }`,
-    { input: { organizationId } }
+  const orgs = await listOrganizations();
+  const perOrg = await Promise.all(
+    orgs.map(async (org) => {
+      const data = await gql(
+        `query Channels($input: ChannelsInput!) {
+          channels(input: $input) {
+            id name displayName service avatar timezone isQueuePaused isDisconnected isLocked
+          }
+        }`,
+        { input: { organizationId: org.id } }
+      );
+      return data.channels.map((c) => ({
+        id: c.id,
+        name: c.displayName || c.name,
+        service: (c.service || "").toLowerCase(),
+        avatar: c.avatar,
+        timezone: c.timezone,
+        paused: Boolean(c.isQueuePaused),
+        disconnected: Boolean(c.isDisconnected || c.isLocked),
+        organizationId: org.id,
+        organizationName: org.name,
+      }));
+    })
   );
-  return data.channels.map((c) => ({
-    id: c.id,
-    name: c.displayName || c.name,
-    service: (c.service || "").toLowerCase(),
-    avatar: c.avatar,
-    timezone: c.timezone,
-    paused: Boolean(c.isQueuePaused),
-    disconnected: Boolean(c.isDisconnected || c.isLocked),
-  }));
+  return perOrg.flat();
 }
 
 /**
@@ -148,7 +162,7 @@ export async function listPosts({
   withMetrics = false,
   maxPages = 5,
 } = {}) {
-  const organizationId = await resolveOrganizationId();
+  const orgs = await listOrganizations();
   const metrics = withMetrics ? "metrics { type name value unit } metricsUpdatedAt" : "";
   const query = `query Posts($first: Int, $after: String, $input: PostsInput!) {
     posts(first: $first, after: $after, input: $input) {
@@ -161,19 +175,24 @@ export async function listPosts({
   if (start || end) filter.dueAt = { ...(start && { start }), ...(end && { end }) };
   if (channelIds?.length) filter.channelIds = channelIds;
 
-  const posts = [];
-  let after = null;
-  for (let page = 0; page < maxPages; page++) {
-    const data = await gql(query, {
-      first: 100,
-      after,
-      input: { organizationId, filter, sort: [{ field: "dueAt", direction: "asc" }] },
-    });
-    posts.push(...data.posts.edges.map((e) => normalisePost(e.node)));
-    if (!data.posts.pageInfo.hasNextPage) break;
-    after = data.posts.pageInfo.endCursor;
-  }
-  return posts;
+  const perOrg = await Promise.all(
+    orgs.map(async ({ id: organizationId }) => {
+      const posts = [];
+      let after = null;
+      for (let page = 0; page < maxPages; page++) {
+        const data = await gql(query, {
+          first: 100,
+          after,
+          input: { organizationId, filter, sort: [{ field: "dueAt", direction: "asc" }] },
+        });
+        posts.push(...data.posts.edges.map((e) => normalisePost(e.node)));
+        if (!data.posts.pageInfo.hasNextPage) break;
+        after = data.posts.pageInfo.endCursor;
+      }
+      return posts;
+    })
+  );
+  return perOrg.flat().sort((a, b) => String(a.dueAt || a.sentAt).localeCompare(String(b.dueAt || b.sentAt)));
 }
 
 export async function getPost(id) {

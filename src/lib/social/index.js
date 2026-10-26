@@ -36,11 +36,14 @@ function assertWritable() {
   if (!postingEnabled()) throw new PostingDisabledError();
 }
 
+// Jobs write posts for these; every other connected channel still shows on
+// the calendar, in stats and in Settings.
 export const SUPPORTED_SERVICES = ["linkedin", "instagram"];
 
+/** Every channel connected in Buffer (all organisations), flagged if jobs can post to it. */
 export async function listChannels() {
   const channels = await provider().listChannels();
-  return channels.filter((c) => SUPPORTED_SERVICES.includes(c.service));
+  return channels.map((c) => ({ ...c, canCompose: SUPPORTED_SERVICES.includes(c.service) }));
 }
 
 // Which job each post came from, so the calendar can link back to it.
@@ -59,7 +62,7 @@ async function attachJobs(posts) {
 
 export async function listPosts(options = {}) {
   const posts = await provider().listPosts(options);
-  const filtered = posts.filter((p) => !p.service || SUPPORTED_SERVICES.includes(p.service));
+  const filtered = posts;
   if (socialMode() === "sandbox" && options.withMetrics) {
     filtered.forEach((p) => {
       p.metrics = sandbox.simulatedMetrics(p);
