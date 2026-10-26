@@ -1,0 +1,29 @@
+{
+  "name": "photo-content-engine",
+  "version": "1.0.0",
+  "description": "AI-powered job photo → marketing content generator + lead finder for Acme Ltd",
+  "main": "src/api/generate-content.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "jest --watch",
+    "test:ci": "jest --ci",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^16.2.4",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "dotenv": "^16.0.3",
+    "axios": "^1.6.0",
+    "mongodb": "^6.3.0",
+    "mongoose": "^8.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@testing-library/react": "^14.0.0",
+    "eslint": "^8.50.0",
+    "eslint-config-next": "^16.2.4"
+  }
+}
