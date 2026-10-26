@@ -14,7 +14,7 @@ export default async function SizerPage({ searchParams }) {
     <>
       <PageHeader
         title="Social sizer"
-        description="One subject point per photo, cut to every platform size from the original. The bright box shows what survives every cut — keep the important part inside it."
+        description="Click the subject once and see the photo cut to every platform size."
       />
       <SizerClient job={job} aiAvailable={Boolean(process.env.VERCEL || process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN)} />
     </>

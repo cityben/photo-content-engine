@@ -11,6 +11,8 @@ import { markPublishedForJob } from "@/lib/ideas";
 import { deleteImage } from "@/lib/media";
 import { nextSlotFor } from "@/lib/schedule";
 import { createPost, listChannels, listPosts, socialMode } from "@/lib/social";
+import { getTemplates } from "@/lib/template-store";
+import { applyTemplates } from "@/lib/templates";
 import { collection } from "@/lib/store";
 import { createBlogDraft, createCaseStudyDraft, getSearchQueries, websiteConfig, websiteConfigured } from "@/lib/website-api";
 
@@ -165,6 +167,9 @@ export async function generateForJob(id, { sections: asked, instructions, model,
     current: job.content,
     model,
   });
+
+  // House top/bottom text goes in word for word, after the AI.
+  Object.assign(content, applyTemplates(content, await getTemplates(), job, sections));
 
   for (const section of preserve) {
     const existing = job.content?.[section];

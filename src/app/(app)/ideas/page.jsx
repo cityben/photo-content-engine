@@ -14,7 +14,7 @@ export default async function IdeasPage() {
     <>
       <PageHeader
         title="Content pipeline"
-        description="What to make next and why. Ideas come from what your market searches for, competitor gaps, questions people ask AI assistants, and the team. Start a job from an idea and it writes towards that search."
+        description="What to make next and why. Draft an idea with AI, or start a job from it."
       />
       <Board
         initialIdeas={ideas}

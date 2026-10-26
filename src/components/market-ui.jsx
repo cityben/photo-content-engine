@@ -256,7 +256,7 @@ export function KeywordTable({ rows, extra = [], initialSort = "score", emptyTex
         </label>
         <div className="ml-auto flex flex-col gap-1">
           <span className="text-xs font-medium text-gray-700">Sort</span>
-          <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-8 rounded-md bg-white px-2 text-xs shadow-paper" aria-label="Sort by">
+          <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-8 rounded-md border border-input bg-white px-2 text-xs shadow-field" aria-label="Sort by">
             {sortable.map((s) => (
               <option key={s} value={s}>
                 {s}

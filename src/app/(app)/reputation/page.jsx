@@ -553,7 +553,7 @@ export default async function ReputationPage({ searchParams }) {
     <>
       <PageHeader
         title="Reputation & authority"
-        description="What buyers see when they check you out: reviews, who mentions you, whether AI assistants recommend you, your backlinks and the health of your key pages."
+        description="Reviews, mentions, AI answers, backlinks and page health — what buyers see when they check you out."
         actions={connected && isSandbox() && <Badge variant="secondary">DataForSEO sandbox · dummy data</Badge>}
       />
       <LinkTabs base="/reputation" tabs={TABS} active={tab} label="Reputation sections" />

@@ -23,7 +23,7 @@ Internal marketing tool for a building services company. Next.js 16 (App Router)
 | **Leads** | Find businesses that buy M&E and FM work (property managers, commercial agents, main contractors, occupiers) from Google Maps around London and Kent towns, scored for fit. Track them New → Contacted → Replied → Meeting → Won/Lost with a call/notes log. AI writes a personalised intro or follow-up citing your real jobs; **a person approves it** before it can be copied, opened in email or marked sent, and marking it sent sets a follow-up five working days out. Nothing is emailed by this tool |
 | **Growth insights** | AI reads all of the above and gives a summary, a prioritised to-do list and content ideas |
 | **Monthly report** | One month on one page: website KPIs with change vs the previous period, top queries and landing pages, social, work shipped (jobs, case studies, pipeline), market and reputation snapshots, tool running costs. **Write summary** adds an AI directors' summary (headline, wins, concerns, next month's actions) from those numbers only. **Download PDF** (print layout) and **CSV** exports |
-| **Settings** | AI model picker (scores, live prices, cost per job, gateway credit) and live connection checks for Buffer, the website, storage and sign-in |
+| **Settings** | AI model picker (scores, live prices, cost per job, gateway credit) and live connection checks for Buffer, the website, storage and sign-in. **Post templates** per channel (LinkedIn, Instagram, Google Business, blog, case study): guidance the AI follows, plus exact text added at the top and/or bottom of every new post ({{title}}, {{location}}, {{client}} fill in). Also editable from any job's channel tab, with one click to add the template text to an existing post |
 
 ### Where the data comes from
 
@@ -90,6 +90,7 @@ src/
     ├── jobs.js                     Job lifecycle: create, write, approve, schedule, send to website
     ├── content.js                  Sections and approval rules (shared with the browser)
     ├── profile.js                  Company profile and website lists (from Settings, not code)
+    ├── templates.js / template-store.js  Channel templates: AI guidance, top/bottom text
     ├── case-study-fields.js        The website's case study fields, completeness check
     ├── docx-map.js / docx-*.js     Word case study → fields by headings (the no-AI path)
     ├── integration.js              /api/v1 job creation for other systems

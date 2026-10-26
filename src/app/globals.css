@@ -2,35 +2,37 @@
 @import "tw-animate-css";
 
 /*
- * Paper design system.
- * Hierarchy comes from shade steps and soft shadows, never stroke borders:
- *   page (#f5f5f5) → card (white) → sunk surface (gray-100) → hover (gray-200)
+ * Paper design system — crisp, shadcn-style.
+ * White sheets on an off-white page. Edges are a 1px hairline (built into
+ * shadow-paper as a ring, so every card gets one) with the faintest lift.
+ * Inputs are white with a drawn border, so fields read clearly on any sheet.
+ *   page (#f7f7f5) → sheet (white + hairline) → inset (gray-50) → hover (gray-100)
  * Accent: navy (#003157). "Marker" is the done/complete fill — navy, with a
  * pale slate ground for success states. No green.
  */
 :root {
-  --radius: 0.75rem;
+  --radius: 0.625rem;
 
-  --background: #f5f5f5;
-  --foreground: #1f2937;
+  --background: #f7f7f5;
+  --foreground: #18181b;
 
   --card: #ffffff;
-  --card-foreground: #1f2937;
+  --card-foreground: #18181b;
   --popover: #ffffff;
-  --popover-foreground: #1f2937;
+  --popover-foreground: #18181b;
 
   --primary: #003157;
   --primary-foreground: #ffffff;
-  --primary-soft: #e6eef5;
+  --primary-soft: #e8eef4;
 
-  --secondary: #f3f4f6;
-  --secondary-foreground: #374151;
+  --secondary: #f4f4f3;
+  --secondary-foreground: #27272a;
 
-  --muted: #f3f4f6;
-  --muted-foreground: #4b5563;
+  --muted: #f4f4f3;
+  --muted-foreground: #52525b;
 
-  --accent: #f3f4f6;
-  --accent-foreground: #1f2937;
+  --accent: #f4f4f3;
+  --accent-foreground: #18181b;
 
   --marker: #003157;
   --marker-soft: #edf1f5;
@@ -38,10 +40,9 @@
   --destructive: #b91c1c;
   --destructive-soft: #fef2f2;
 
-  /* Kept for shadcn compatibility; resolved to "no visible line". */
-  --border: transparent;
-  --input: #f3f4f6;
-  --ring: rgb(0 49 87 / 0.35);
+  --border: #e7e6e3;
+  --input: #dcdad6;
+  --ring: rgb(0 49 87 / 0.3);
 }
 
 @theme inline {
@@ -76,9 +77,10 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Navy-tinted paper shadows: 1–2px of lift, no hard edges. */
-  --shadow-paper: 0 1px 2px rgb(0 49 87 / 0.05), 0 1px 3px rgb(0 49 87 / 0.07);
-  --shadow-paper-lg: 0 2px 4px rgb(0 49 87 / 0.05), 0 8px 24px -12px rgb(0 49 87 / 0.18);
+  /* A hairline ring plus the faintest lift: crisp edges without extra markup. */
+  --shadow-paper: 0 0 0 1px var(--border), 0 1px 2px rgb(24 24 27 / 0.04);
+  --shadow-paper-lg: 0 0 0 1px var(--border), 0 2px 4px rgb(24 24 27 / 0.04), 0 12px 32px -12px rgb(24 24 27 / 0.18);
+  --shadow-field: 0 1px 2px rgb(24 24 27 / 0.04);
 }
 
 @layer base {

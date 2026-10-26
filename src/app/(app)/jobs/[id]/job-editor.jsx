@@ -32,8 +32,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/client-api";
-import { APPROVABLE, blankContent, isIdeaJob, mainImageOf, needsApproval, orderedImages } from "@/lib/content";
+import { TemplateBar } from "@/components/template-editor";
+import { APPROVABLE, blankContent, hasSubstance, isIdeaJob, mainImageOf, needsApproval, orderedImages } from "@/lib/content";
+import { applyTemplates } from "@/lib/templates";
 import { formatDateTime } from "@/lib/time";
+import { cn } from "@/lib/utils";
 
 import { ApprovalBar } from "./approval-bar";
 import { BlogForm } from "./blog-form";
@@ -203,14 +206,48 @@ function GoogleBusiness({ job, data, onChange, approved, dirty, onChanged }) {
   );
 }
 
-export function JobEditor({ initialJob, social, posts, websiteConnected, models, startManual, startTab }) {
+/** Template text only goes into sections that are new (not already written). */
+function withTemplates(blank, existing, templates, job) {
+  const fresh = Object.keys(blank).filter((k) => !existing?.[k]);
+  return applyTemplates(blank, templates, job, fresh);
+}
+
+/** Where one channel stands: written → approved → out. */
+function channelStatus(section, { job, content, dirty, posts }) {
+  if (dirty.has(section)) return { tone: "edit", text: "Unsaved changes" };
+  if (!hasSubstance(section, content[section])) return { tone: "empty", text: "Not written" };
+  const approved = Boolean(job.approvals?.[section]);
+  if (approved) {
+    if (section === "linkedin" || section === "instagram") {
+      const p = posts.filter((x) => x.service === section);
+      if (p.length) return { tone: "out", text: p[0].status === "sent" ? "Posted" : `Scheduled ${formatDateTime(p[0].dueAt).replace(/,? \d{4}/, "")}` };
+    }
+    if (section === "caseStudy" && job.website?.projectId) return { tone: "out", text: "On website" };
+    if (section === "blog" && job.blogPost?.id) return { tone: "out", text: "On website" };
+    if (section === "googleBusiness" && job.googlePosted) return { tone: "out", text: "Posted" };
+    return { tone: "approved", text: "Approved" };
+  }
+  return { tone: "todo", text: "Needs approval" };
+}
+
+const DOT = {
+  empty: "border border-gray-300 bg-white",
+  edit: "bg-amber-500",
+  todo: "border-2 border-primary bg-white",
+  approved: "bg-primary",
+  out: "bg-primary",
+};
+
+export function JobEditor({ initialJob, social, posts, websiteConnected, models, startManual, startTab, initialTemplates }) {
   const router = useRouter();
   const [job, setJob] = useState(initialJob);
   const [content, setContent] = useState(() => {
     const c = initialJob.content || {};
-    // Manual start: blank sections to type into (anything imported is kept).
-    return startManual ? blankContent(initialJob, c) : c;
+    // Manual start: blank sections to type into (anything imported is kept),
+    // with each channel's template text already in place.
+    return startManual ? withTemplates(blankContent(initialJob, c), c, initialTemplates, initialJob) : c;
   });
+  const [templates, setTemplates] = useState(initialTemplates || {});
   const [brief, setBrief] = useState({
     title: initialJob.title,
     writeUp: initialJob.writeUp,
@@ -280,7 +317,6 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
     }
   };
 
-  const lastRun = job.aiRuns?.at(-1);
   const totalCost = (job.aiRuns || []).reduce((sum, r) => sum + (r.costUsd || 0), 0);
 
   const remove = async () => {
@@ -295,7 +331,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
 
   const postsFor = (service) => posts.filter((p) => p.service === service);
   const writeManually = () => {
-    setContent((c) => blankContent(job, c));
+    setContent((c) => withTemplates(blankContent(job, c), c, templates, job));
     if (tab === "brief") setTab(firstTab);
   };
   const aiWrote = (section) => (job.aiRuns || []).some((r) => r.sections?.includes(section));
@@ -317,24 +353,19 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{job.title}</h1>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-            {job.generatedAt ? (
-              <span>
-                Written {formatDateTime(job.generatedAt)}
-                {lastRun && ` by ${lastRun.model}${lastRun.costUsd != null ? ` · ${money(lastRun.costUsd, 3)}` : ""}`}
-                {job.aiRuns?.length > 1 && totalCost > 0 && ` · ${money(totalCost, 3)} across ${job.aiRuns.length} runs`}
-              </span>
-            ) : (
-              !hasContent(content) && <Badge variant="secondary">Not written yet</Badge>
-            )}
-            {job.searchDataUsed && <Badge variant="success">Uses Search Console data</Badge>}
-            {pending.length > 0 && <Badge variant="secondary">{pending.length} to approve</Badge>}
-            {posts.length > 0 && <Badge>{posts.length} scheduled</Badge>}
-            {job.website?.projectId && <Badge variant="success">Case study draft on website</Badge>}
-            {job.blogPost?.id && <Badge variant="success">Blog draft on website</Badge>}
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 sm:text-[28px]">{job.title}</h1>
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
             {isIdeaJob(job) && <Badge variant="secondary">From the content pipeline</Badge>}
-          </div>
+            <span>
+              {pending.length ? `${pending.length} ${pending.length === 1 ? "part needs" : "parts need"} your approval` : hasContent(content) ? "Nothing waiting for approval" : "Not written yet"}
+            </span>
+            {job.generatedAt && (
+              <span className="text-gray-400">
+                · AI draft {formatDateTime(job.generatedAt)}
+                {totalCost > 0 && ` · ${money(totalCost, 3)}`}
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {dirty.size > 0 && (
@@ -370,22 +401,40 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={setTab} className="gap-3">
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <TabsList>
-            {tabsFor(job, content).map((t) => (
-              <TabsTrigger key={t.id} value={t.id}>
-                {t.label}
-                {APPROVABLE.includes(t.section) && job.approvals?.[t.section] && !dirty.has(t.section) && (
-                  <CheckCircle2 aria-label="approved" className="size-3.5 text-primary" />
-                )}
-                {dirty.has(t.section || "brief") && <span aria-label="unsaved" className="size-1.5 rounded-full bg-marker" />}
-              </TabsTrigger>
-            ))}
+          <TabsList className="h-auto w-full justify-start gap-1 bg-transparent p-0">
+            {tabsFor(job, content).map((t) => {
+              const status = APPROVABLE.includes(t.section) ? channelStatus(t.section, { job, content, dirty, posts }) : null;
+              return (
+                <TabsTrigger
+                  key={t.id}
+                  value={t.id}
+                  className="h-auto min-w-[8.5rem] flex-col items-start gap-0.5 rounded-lg border border-transparent px-3 py-2 text-left hover:bg-white/70 data-[state=active]:border-border data-[state=active]:bg-white data-[state=active]:shadow-field"
+                >
+                  <span className="text-sm font-medium text-gray-900">{t.label}</span>
+                  <span className="flex items-center gap-1.5 text-xs font-normal text-gray-500">
+                    {status ? (
+                      <>
+                        <span aria-hidden className={cn("size-2 rounded-full", DOT[status.tone])} />
+                        {status.text}
+                      </>
+                    ) : t.id === "brief" ? (
+                      `${brief.images.length} photo${brief.images.length === 1 ? "" : "s"}${dirty.has("brief") ? " · unsaved" : ""}`
+                    ) : t.id === "seo" ? (
+                      "Search ideas"
+                    ) : (
+                      "AI advice"
+                    )}
+                  </span>
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
         </div>
+        <p className="text-xs text-gray-500">Each channel: write it (AI or by hand) → approve it → schedule or send it. Nothing goes out until it&apos;s approved.</p>
 
-        <Card className="mt-2">
+        <Card>
           <CardContent>
             {!hasContent(content) && tab !== "brief" ? (
               <div className="flex flex-col items-start gap-3 rounded-lg bg-gray-50 p-6">
@@ -401,6 +450,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
               <>
                 <TabsContent value="blog">
                   <ApprovalBar {...approvalProps("blog")} />
+                  <TemplateBar section="blog" templates={templates} onTemplates={setTemplates} data={content.blog} job={job} onApply={setSection("blog")} />
                   <BlogForm
                     approved={Boolean(job.approvals?.blog)}
                     job={job}
@@ -413,6 +463,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
                 </TabsContent>
                 <TabsContent value="linkedin">
                   <ApprovalBar {...approvalProps("linkedin")} />
+                  <TemplateBar section="linkedin" templates={templates} onTemplates={setTemplates} data={content.linkedin} job={job} onApply={setSection("linkedin")} />
                   <SocialComposer
                     approved={Boolean(job.approvals?.linkedin)}
                     dirty={dirty.has("linkedin")}
@@ -428,6 +479,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
                 </TabsContent>
                 <TabsContent value="instagram">
                   <ApprovalBar {...approvalProps("instagram")} />
+                  <TemplateBar section="instagram" templates={templates} onTemplates={setTemplates} data={content.instagram} job={job} onApply={setSection("instagram")} />
                   <SocialComposer
                     approved={Boolean(job.approvals?.instagram)}
                     dirty={dirty.has("instagram")}
@@ -443,6 +495,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
                 </TabsContent>
                 <TabsContent value="caseStudy">
                   <ApprovalBar {...approvalProps("caseStudy")} />
+                  <TemplateBar section="caseStudy" templates={templates} onTemplates={setTemplates} data={content.caseStudy} job={job} onApply={setSection("caseStudy")} />
                   <CaseStudyForm
                     approved={Boolean(job.approvals?.caseStudy)}
                     job={job}
@@ -455,6 +508,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
                 </TabsContent>
                 <TabsContent value="googleBusiness">
                   <ApprovalBar {...approvalProps("googleBusiness")} />
+                  <TemplateBar section="googleBusiness" templates={templates} onTemplates={setTemplates} data={content.googleBusiness} job={job} onApply={setSection("googleBusiness")} />
                   <GoogleBusiness
                     job={job}
                     data={content.googleBusiness}

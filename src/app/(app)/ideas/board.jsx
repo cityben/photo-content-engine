@@ -17,7 +17,7 @@ import { api } from "@/lib/client-api";
 import { formatNumber, money } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 
-const selectClass = "h-9 w-full rounded-md bg-gray-100 px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring";
+const selectClass = "h-9 w-full rounded-md border border-input bg-white shadow-field px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring";
 
 function byScore(a, b) {
   return (b.score ?? -1) - (a.score ?? -1) || (b.order ?? 0) - (a.order ?? 0);
@@ -335,7 +335,7 @@ export function Board({ initialIdeas, jobs, stages, formats, sources, aiReady })
           <Label htmlFor="f-format" className="text-xs">
             Format
           </Label>
-          <select id="f-format" value={format} onChange={(e) => setFormat(e.target.value)} className={cn(selectClass, "w-44 bg-white shadow-paper")}>
+          <select id="f-format" value={format} onChange={(e) => setFormat(e.target.value)} className={cn(selectClass, "w-44")}>
             <option value="all">All formats</option>
             {Object.entries(formats).map(([id, label]) => (
               <option key={id} value={id}>
@@ -348,7 +348,7 @@ export function Board({ initialIdeas, jobs, stages, formats, sources, aiReady })
           <Label htmlFor="f-source" className="text-xs">
             Source
           </Label>
-          <select id="f-source" value={source} onChange={(e) => setSource(e.target.value)} className={cn(selectClass, "w-44 bg-white shadow-paper")}>
+          <select id="f-source" value={source} onChange={(e) => setSource(e.target.value)} className={cn(selectClass, "w-44")}>
             <option value="all">All sources</option>
             {Object.entries(sources).map(([id, label]) => (
               <option key={id} value={id}>

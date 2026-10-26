@@ -156,7 +156,7 @@ function NotRanking({ data }) {
     <Section
       id="not-ranking"
       title="Why you're not ranking"
-      description="The searches worth winning, where you stand, who's beating you and why — biggest opportunity first. From Search Console and your latest market data; nothing here costs to view."
+      description="Searches worth winning: where you stand, who's ahead, why, and the fix."
       action={data.marketAt && <span className="text-xs text-gray-500">Market data from {day(data.marketAt)}</span>}
     >
       {!rows.length ? (
@@ -242,7 +242,7 @@ function List({ items, empty, render }) {
 function Working({ data }) {
   const w = data.working;
   return (
-    <Section id="working" title="What's working" description="Searches and pages gaining ground, and the posts people engaged with, last 28 days.">
+    <Section id="working" title="What's working" description="Gaining ground in the last 28 days.">
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Rising in Google</h3>
@@ -308,7 +308,7 @@ function Working({ data }) {
 function Trending({ data }) {
   const t = data.trending;
   return (
-    <Section id="trending" title="What's trending" description="Where demand in your niche is growing, new searches finding you, and which competitors are gaining.">
+    <Section id="trending" title="What's trending" description="Growing demand, new searches and competitors on the rise.">
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-2 sm:col-span-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Rising searches in your niche</h3>
@@ -387,7 +387,7 @@ function Competitors({ data }) {
     <Section
       id="competitors"
       title="You vs competitors"
-      description="Estimated Google traffic, how much of it you hold, keywords on page one and link authority, from the latest snapshots."
+      description="Estimated Google traffic, share, page-one keywords and links."
       action={
         <Button size="sm" variant="ghost" asChild>
           <Link href="/keywords?tab=competitors">
@@ -463,7 +463,7 @@ export default async function Dashboard() {
     <>
       <PageHeader
         title={`${greeting()}${name}`}
-        description="How you're doing, why you're not ranking where you should, what's working and what's moving in your market — and what needs you today."
+        description="Your numbers, what needs you today, and where you could rank higher."
         actions={
           <Button asChild>
             <Link href="/jobs/new">

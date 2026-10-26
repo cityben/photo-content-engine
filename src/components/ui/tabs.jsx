@@ -20,7 +20,7 @@ function TabsList({ className, ...props }) {
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "inline-flex w-fit items-center justify-center gap-1 rounded-lg bg-gray-100 p-1 text-gray-600",
+        "inline-flex w-fit items-center justify-center gap-0.5 rounded-lg bg-muted p-[3px] text-gray-600",
         className
       )}
       {...props}
@@ -33,7 +33,7 @@ function TabsTrigger({ className, ...props }) {
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-sm font-medium transition-[color,background-color,box-shadow] outline-none hover:text-gray-900 focus-visible:ring-[3px] focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-paper [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "inline-flex h-[30px] items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-sm font-medium transition-[color,background-color,box-shadow] outline-none hover:text-gray-900 focus-visible:ring-[3px] focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-paper [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}

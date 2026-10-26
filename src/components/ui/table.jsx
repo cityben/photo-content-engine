@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-// Rows separate by shade on hover and a 1px gray-100 band — no drawn borders.
+// Hairline rules between rows, a quiet header and a shade on hover.
 function Table({ className, ...props }) {
   return (
     <div className="relative w-full overflow-x-auto">
@@ -12,11 +12,11 @@ function Table({ className, ...props }) {
 }
 
 function TableHeader({ className, ...props }) {
-  return <thead className={cn("bg-gray-50", className)} {...props} />;
+  return <thead className={cn("[&_tr]:border-b [&_tr]:border-border", className)} {...props} />;
 }
 
 function TableBody({ className, ...props }) {
-  return <tbody className={cn("[&_tr+tr]:shadow-[0_-1px_0_var(--color-gray-100)]", className)} {...props} />;
+  return <tbody className={cn("[&_tr+tr]:border-t [&_tr+tr]:border-border", className)} {...props} />;
 }
 
 function TableRow({ className, ...props }) {

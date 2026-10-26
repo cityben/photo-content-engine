@@ -121,7 +121,7 @@ export function ScheduleDialog({ schedule, onSaved }) {
               <select
                 value={Math.min(draft[service].perDay || 1, draft[service].times.length)}
                 onChange={(e) => setDraft((d) => ({ ...d, [service]: { ...d[service], perDay: Number(e.target.value) } }))}
-                className="h-9 rounded-md bg-white px-2 text-sm shadow-paper"
+                className="h-9 rounded-md border border-input bg-white px-2 text-sm shadow-field"
                 aria-label={`${serviceInfo(service).label} posts per posting day`}
               >
                 {draft[service].times.map((_, i) => (

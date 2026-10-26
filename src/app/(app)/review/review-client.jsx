@@ -23,7 +23,7 @@ const SECTION_CHIP = {
   googleBusiness: "Google Business",
 };
 const when = (iso) => new Date(iso).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
-const selectClass = "h-8 rounded-md bg-gray-100 px-2 text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring";
+const selectClass = "h-8 rounded-md border border-input bg-white shadow-field px-2 text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring";
 
 /* --- Autopilot ----------------------------------------------------------- */
 

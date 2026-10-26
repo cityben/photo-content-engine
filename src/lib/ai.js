@@ -14,6 +14,8 @@ import { asList, normaliseCaseStudy, serviceLinksFor } from "@/lib/case-study-fi
 import { getStoredImage } from "@/lib/media";
 import { getActiveModel, runCost } from "@/lib/models";
 import { allServices, companyLine, getOptions, getProfile, optionsOf } from "@/lib/profile";
+import { getTemplates } from "@/lib/template-store";
+import { templatePrompt } from "@/lib/templates";
 
 const STYLE = `Voice: UK English. Active, terse, concrete. Name real kit, real deliverables (commissioning records, O&M manuals, F-Gas certificates, PPM schedules) where the job involves them. No hype. Never use: "seamless", "cutting-edge", "one-stop solution", "elevate", "unlock", "game-changer", "state-of-the-art".
 
@@ -211,6 +213,7 @@ export async function generateJobContent(job, { sections = defaultSections(job),
     current && wanted.length < defaultSections(job).length
       ? `\nThe other parts already written (keep consistent with them):\n${JSON.stringify(current, null, 1).slice(0, 4000)}`
       : "",
+    templatePrompt(await getTemplates(), wanted),
     instructions ? `\nExtra instructions from the user for this version: ${instructions}` : "",
     `\nWrite: ${wanted.join(", ")}.`,
   ].join("\n");

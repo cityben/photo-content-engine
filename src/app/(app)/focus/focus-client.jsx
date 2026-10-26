@@ -362,7 +362,7 @@ function Automation({ initial, presets, cronReady }) {
         Every Monday at 06:30 (UTC), ready when you start the week
       </label>
       <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
-        <select value={s.preset} onChange={(e) => save({ ...s, preset: e.target.value })} aria-label="Checks to run" className="h-9 rounded-md bg-gray-100 px-3 text-sm">
+        <select value={s.preset} onChange={(e) => save({ ...s, preset: e.target.value })} aria-label="Checks to run" className="h-9 rounded-md border border-input bg-white px-3 text-sm shadow-field">
           {Object.entries(presets).map(([k, p]) => (
             <option key={k} value={k}>
               {p.label}

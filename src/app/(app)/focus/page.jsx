@@ -12,7 +12,7 @@ export default async function FocusPage() {
     <>
       <PageHeader
         title="Focus"
-        description="One run through everything — posting, approvals, case studies, pipeline, leads, search, traffic, competitors and reputation — and one list of what to do about it."
+        description="Run a check across everything, get one list of what to fix next."
       />
       <FocusClient data={{ ...cat, runs, checklist, schedule }} cronReady={Boolean(process.env.CRON_SECRET)} />
     </>

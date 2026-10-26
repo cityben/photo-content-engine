@@ -24,7 +24,7 @@ export default async function InsightsPage({ searchParams }) {
     <>
       <PageHeader
         title="Growth insights"
-        description="AI reads your Buffer stats, website traffic and Search Console data, then tells you what to do next."
+        description="AI reads your stats and traffic and tells you what to do next."
         actions={
           <>
             <RangePicker days={days} basePath="/insights" />

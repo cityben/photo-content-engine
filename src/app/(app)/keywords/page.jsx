@@ -381,7 +381,7 @@ export default async function KeywordsPage({ searchParams }) {
     <>
       <PageHeader
         title="Search & market"
-        description="Where you rank, who you're up against, and what your market is searching for — so every case study targets demand that exists."
+        description="Where you rank, who you're up against, and what people search for."
         actions={connected && isSandbox() && <Badge variant="secondary">DataForSEO sandbox · dummy data</Badge>}
       />
       <LinkTabs base="/keywords" tabs={TABS} active={tab} label="Search & market sections" />

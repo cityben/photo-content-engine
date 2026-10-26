@@ -163,7 +163,7 @@ export default async function LeadsPage({ searchParams }) {
     <>
       <PageHeader
         title="Leads"
-        description="Find the businesses that buy what you do, write to them personally, and never miss a follow-up. Emails are drafted here and sent from your own inbox — only after you approve them."
+        description="Find businesses that buy what you do, write to them, and keep on top of follow-ups."
       />
       <LinkTabs base="/leads" tabs={TABS} active={tab} label="Leads sections" />
       {tab === "pipeline" && <PipelineTab stage={stage} />}

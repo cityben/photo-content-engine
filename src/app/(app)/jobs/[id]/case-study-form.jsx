@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, Globe, Loader2, X } from "lucide-react";
+import { ChevronDown, ExternalLink, Globe, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { DocxImport } from "@/components/docx-import";
@@ -18,7 +18,7 @@ import { api } from "@/lib/client-api";
 import { cn } from "@/lib/utils";
 
 
-function Field({ id, label, hint, max, value, onChange, multiline, rows }) {
+function Field({ id, label, hint, max, value, onChange, multiline, rows, placeholder }) {
   const length = value?.length || 0;
   return (
     <div className="flex flex-col gap-2">
@@ -27,9 +27,9 @@ function Field({ id, label, hint, max, value, onChange, multiline, rows }) {
         {max && <span className={cn("text-xs tabular-nums text-gray-500", length > max && "font-medium text-destructive")}>{length}/{max}</span>}
       </div>
       {multiline ? (
-        <Textarea id={id} value={value || ""} onChange={(e) => onChange(e.target.value)} className={rows === "lg" ? "min-h-36" : "min-h-24"} />
+        <Textarea id={id} value={value || ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className={rows === "lg" ? "min-h-36" : "min-h-20"} />
       ) : (
-        <Input id={id} value={value || ""} onChange={(e) => onChange(e.target.value)} />
+        <Input id={id} value={value || ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
       )}
       {hint && <p className="text-xs text-gray-500">{hint}</p>}
     </div>
@@ -65,7 +65,7 @@ function MultiPick({ id, label, values, items, onChange, hint, group }) {
       {list.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {list.map((s) => (
-            <span key={s} className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-gray-800 shadow-paper">
+            <span key={s} className="inline-flex items-center gap-1 rounded-full border border-border bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-800">
               {s}
               <button type="button" onClick={() => onChange(list.filter((x) => x !== s))} aria-label={`Remove ${s}`} className="rounded-full text-gray-500 hover:text-gray-900">
                 <X className="size-3" />
@@ -93,38 +93,77 @@ function MultiPick({ id, label, values, items, onChange, hint, group }) {
   );
 }
 
-function Completeness({ cs }) {
-  const c = completeness(cs);
-  const missing = [...c.required, ...c.recommended];
+const filled = (v) => (Array.isArray(v) ? v.length > 0 : v !== "" && v != null && v !== false);
+
+/** A form section that folds away; the header says how much of it is filled. */
+function Section({ title, description, fields = [], cs, defaultOpen = true, children }) {
+  const done = fields.filter((k) => filled(cs?.[k])).length;
   return (
-    <div className="flex flex-col gap-2 rounded-lg bg-gray-50 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-gray-900">Website case study: {c.percent}% complete</p>
-        <span className="h-2 w-40 overflow-hidden rounded-full bg-white">
-          <span className={cn("block h-full rounded-full", c.required.length ? "bg-destructive" : "bg-marker")} style={{ width: `${c.percent}%` }} />
+    <details open={defaultOpen} className="group rounded-lg border border-border bg-white">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-4 py-3 outline-none hover:bg-gray-50 focus-visible:ring-[3px] focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <span className="flex min-w-0 flex-col">
+          <span className="text-sm font-semibold text-gray-900">{title}</span>
+          {description && <span className="text-xs text-gray-500">{description}</span>}
         </span>
-      </div>
-      {c.required.length > 0 && <p className="text-xs text-destructive">Needed to send: {c.required.map((m) => m.label).join(", ")}.</p>}
-      {c.recommended.length > 0 && (
-        <p className="text-xs text-gray-600">
-          Would make it stronger: {missing.filter((m) => !c.required.includes(m)).map((m) => (m.why ? `${m.label} (${m.why})` : m.label)).join(", ")}.
-        </p>
-      )}
-      {c.tooLong.length > 0 && <p className="text-xs text-destructive">Too long: {c.tooLong.map((m) => `${m.label} (max ${m.max})`).join(", ")}.</p>}
-      {!missing.length && !c.tooLong.length && <p className="text-xs text-gray-600">Everything the website uses is filled in.</p>}
-    </div>
+        <span className="flex shrink-0 items-center gap-2 text-xs tabular-nums text-gray-500">
+          {fields.length > 0 && `${done}/${fields.length}`}
+          <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
+        </span>
+      </summary>
+      <div className="flex flex-col gap-4 border-t border-border px-4 py-4">{children}</div>
+    </details>
   );
 }
 
-function Section({ title, description, children }) {
+/** One block: how complete it is, Word import, and sending to the website. */
+function WebsiteHeader({ cs, job, sent, approved, dirty, websiteConnected, sending, onSend, onWord }) {
+  const c = completeness(cs);
+  const stronger = c.recommended;
+  const status = sent
+    ? "On the website as an unpublished draft — publish it in the website admin."
+    : !approved || dirty
+      ? "Approve it first, then send it to the website as an unpublished draft."
+      : websiteConnected
+        ? "Approved — ready to send as an unpublished draft."
+        : "Connect the website in Settings to send it.";
   return (
-    <section className="flex flex-col gap-4 rounded-lg bg-gray-50 p-4 sm:p-5">
-      <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
-        {description && <p className="text-xs text-gray-500">{description}</p>}
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold tabular-nums text-primary">{c.percent}%</span>
+          <div className="flex min-w-0 flex-col">
+            <p className="text-sm font-semibold text-gray-900">Website case study</p>
+            <p className="text-xs text-gray-600">{status}</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {!sent && <DocxImport onImported={onWord} known={job.details || {}} withPhotos={false} label="Fill from Word" />}
+          {sent ? (
+            <>
+              <Badge variant="success">Draft on website</Badge>
+              <Button variant="outline" size="sm" asChild>
+                <a href={job.website.url} target="_blank" rel="noreferrer">
+                  Preview <ExternalLink />
+                </a>
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" onClick={onSend} disabled={!websiteConnected || sending || !approved || dirty || c.required.length > 0}>
+              {sending ? <Loader2 className="animate-spin" /> : <Globe />}
+              {sending ? "Sending…" : "Send as draft"}
+            </Button>
+          )}
+        </div>
       </div>
-      {children}
-    </section>
+      {c.required.length > 0 && <p className="text-xs text-destructive">Needed before it can be sent: {c.required.map((m) => m.label).join(", ")}.</p>}
+      {c.tooLong.length > 0 && <p className="text-xs text-destructive">Too long: {c.tooLong.map((m) => `${m.label} (max ${m.max})`).join(", ")}.</p>}
+      {stronger.length > 0 && (
+        <details className="text-xs text-gray-600">
+          <summary className="cursor-pointer select-none font-medium text-gray-700">{stronger.length} more {stronger.length === 1 ? "field" : "fields"} would make it stronger</summary>
+          <p className="mt-1">{stronger.map((m) => (m.why ? `${m.label} (${m.why})` : m.label)).join(", ")}.</p>
+        </details>
+      )}
+    </div>
   );
 }
 
@@ -163,51 +202,9 @@ export function CaseStudyForm({ job, data, onChange, websiteConnected, dirty, on
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-primary-soft p-4">
-        <div className="flex items-start gap-3">
-          <Globe className="mt-0.5 size-5 shrink-0 text-primary" />
-          <div className="flex flex-col gap-0.5">
-            <p className="text-sm font-semibold text-gray-900">
-              {sent ? "On the website as a draft" : "Website case study"}
-            </p>
-            <p className="text-xs text-gray-700">
-              {sent
-                ? "Review and publish it in the website admin. Edits here won't sync after sending."
-                : !approved || dirty
-                  ? "Approve the case study (above) first. Then photos upload to the website and it's created unpublished for a final check."
-                  : websiteConnected
-                  ? "Approved. Photos upload to the website, then the case study is created unpublished for a final check in the website admin."
-                  : "Connect the website (WEBSITE_API_KEY in Settings) to send this straight in. You can copy fields meanwhile."}
-            </p>
-          </div>
-        </div>
-        {sent ? (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <a href={job.website.url} target="_blank" rel="noreferrer">
-                Preview <ExternalLink />
-              </a>
-            </Button>
-            <Badge variant="success">Draft</Badge>
-          </div>
-        ) : (
-          <Button onClick={send} disabled={!websiteConnected || sending || !approved || dirty || !cs.title || !cs.description}>
-            {sending ? <Loader2 className="animate-spin" /> : <Globe />}
-            {sending ? "Sending…" : "Send as draft"}
-          </Button>
-        )}
-      </div>
+      <WebsiteHeader cs={cs} job={job} sent={sent} approved={approved} dirty={dirty} websiteConnected={websiteConnected} sending={sending} onSend={send} onWord={fillFromWord} />
 
-      {!sent && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 p-4">
-          <p className="text-sm text-gray-700">Have it in Word? AI reads the document into these fields (or untick it to map by headings). Only fields the document has are replaced.</p>
-          <DocxImport onImported={fillFromWord} known={job.details || {}} withPhotos={false} label="Fill from Word" />
-        </div>
-      )}
-
-      <Completeness cs={cs} />
-
-      <Section title="Overview" description="Mirrors the website editor's Overview tab.">
+      <Section title="Overview" cs={cs} fields={["title", "company", "area", "county", "postcode", "durationWeeks", "client"]}>
         <div className="flex flex-col gap-2">
           <Label htmlFor="cs-template">{CASE_STUDY_SPEC.template.label}</Label>
           <Select value={cs.template} onValueChange={set("template")}>
@@ -224,39 +221,39 @@ export function CaseStudyForm({ job, data, onChange, websiteConnected, dirty, on
           </Select>
           <p className="text-xs text-gray-500">{TEMPLATES.find((t) => t.value === cs.template)?.hint}</p>
         </div>
-        <Field id="cs-title" label="Job name" max={70} value={cs.title} onChange={set("title")} hint="e.g. Rochester Office CAT-B Fit-out" />
-        <MultiPick id="cs-company" label="Company" values={cs.company} items={options.companies} onChange={set("company")} hint="Every company that delivered this job." />
+        <Field id="cs-title" label="Job name" max={70} value={cs.title} onChange={set("title")} placeholder="e.g. Rochester Office CAT-B Fit-out" />
+        <MultiPick id="cs-company" label="Company" values={cs.company} items={options.companies} onChange={set("company")} />
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field id="cs-area" label="Area" value={cs.area} onChange={set("area")} hint="e.g. Rochester" />
-          <Field id="cs-county" label="Borough / county" value={cs.county} onChange={set("county")} hint="e.g. Kent" />
-          <Field id="cs-postcode" label="Postcode" value={cs.postcode} onChange={set("postcode")} hint="Places the map pin." />
+          <Field id="cs-area" label="Area" value={cs.area} onChange={set("area")} placeholder="e.g. Rochester" />
+          <Field id="cs-county" label="Borough / county" value={cs.county} onChange={set("county")} placeholder="e.g. Kent" />
+          <Field id="cs-postcode" label="Postcode" value={cs.postcode} onChange={set("postcode")} placeholder="Places the map pin" />
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="flex flex-col gap-2">
             <Label htmlFor="cs-weeks">Project duration (weeks)</Label>
             <Input id="cs-weeks" type="number" min={0} step={1} value={cs.durationWeeks ?? ""} onChange={(e) => set("durationWeeks")(e.target.value === "" ? null : Number(e.target.value))} />
           </div>
-          <Field id="cs-client" label="Client" value={cs.client} onChange={set("client")} hint="Leave blank if confidential." />
+          <Field id="cs-client" label="Client" value={cs.client} onChange={set("client")} placeholder="Blank if confidential" />
           <label className="mt-7 flex items-center gap-2 text-sm text-gray-800">
-            <input type="checkbox" checked={Boolean(cs.addToMap)} onChange={(e) => set("addToMap")(e.target.checked)} className="size-4 accent-[#003157]" />
+            <input type="checkbox" checked={Boolean(cs.addToMap)} onChange={(e) => set("addToMap")(e.target.checked)} className="size-4 accent-primary" />
             Show on the site map
           </label>
         </div>
       </Section>
 
-      <Section title="Classification" description="Services delivered decide which service pages show this case study.">
+      <Section title="Classification" description="Services decide which service pages show it" cs={cs} fields={["projectType", "sector", "services"]}>
         <div className="grid gap-4 sm:grid-cols-2">
           <MultiPick id="cs-type" label="Type of project" values={cs.projectType} items={options.projectTypes} onChange={set("projectType")} />
           <MultiPick id="cs-sector" label="Project sector" values={cs.sector} items={options.sectors} onChange={set("sector")} />
         </div>
-        <MultiPick id="cs-services" label="Services delivered" values={cs.services} items={ALL_SERVICES} group onChange={set("services")} hint="Ticking a service puts this case study on that service's page." />
+        <MultiPick id="cs-services" label="Services delivered" values={cs.services} items={ALL_SERVICES} group onChange={set("services")} />
       </Section>
 
-      <Section title="Summary" description="Shown on cards and in Google results.">
-        <Field id="cs-description" label="Short summary" max={300} value={cs.description} onChange={set("description")} multiline hint="One or two sentences summarising the job." />
+      <Section title="Summary" description="Shown on cards and in Google results" cs={cs} fields={["description"]}>
+        <Field id="cs-description" label="Short summary" max={300} value={cs.description} onChange={set("description")} multiline placeholder="One or two sentences" />
       </Section>
 
-      <Section title="Case study" description={`Markdown works. The ${full ? "Full" : "Simple"} type shows ${full ? "scope, challenges, highlights and outcome" : "scope, key works and outcome"}.`}>
+      <Section title="The story" description="Markdown works" cs={cs} fields={full ? ["scopeOfWorks", "keyChallenges", "deliveryHighlights", "projectOutcome"] : ["scopeOfWorks", "keyWorks", "projectOutcome"]}>
         <Field id="cs-scope" label="Scope of works" value={cs.scopeOfWorks} onChange={set("scopeOfWorks")} multiline rows="lg" />
         {!full && <Field id="cs-key" label="Key works delivered" value={cs.keyWorks} onChange={set("keyWorks")} multiline rows="lg" />}
         {full && <Field id="cs-challenges" label="Key challenges & solutions" value={cs.keyChallenges} onChange={set("keyChallenges")} multiline rows="lg" />}
@@ -264,9 +261,9 @@ export function CaseStudyForm({ job, data, onChange, websiteConnected, dirty, on
         <Field id="cs-outcome" label="Project outcome & results" value={cs.projectOutcome} onChange={set("projectOutcome")} multiline rows="lg" />
       </Section>
 
-      <Section title="Client testimonial" description="Only a real quote from the client. Saved testimonials also appear in the website's Reviews.">
+      <Section title="Client testimonial" description="Only a real quote. Also shows in the website's Reviews" cs={cs} defaultOpen={Boolean(cs.testimonialEnabled)}>
         <label className="flex items-center gap-2 text-sm text-gray-800">
-          <input type="checkbox" checked={Boolean(cs.testimonialEnabled)} onChange={(e) => set("testimonialEnabled")(e.target.checked)} className="size-4 accent-[#003157]" />
+          <input type="checkbox" checked={Boolean(cs.testimonialEnabled)} onChange={(e) => set("testimonialEnabled")(e.target.checked)} className="size-4 accent-primary" />
           We received a testimonial for this job
         </label>
         {cs.testimonialEnabled && (
@@ -274,20 +271,20 @@ export function CaseStudyForm({ job, data, onChange, websiteConnected, dirty, on
             <Field id="cs-quote" label="Testimonial" value={cs.testimonialQuote} onChange={set("testimonialQuote")} multiline />
             <div className="grid gap-4 sm:grid-cols-2">
               <Field id="cs-quote-author" label="Client name" value={cs.testimonialAuthor} onChange={set("testimonialAuthor")} />
-              <Field id="cs-quote-role" label="Client role / company" value={cs.testimonialRole} onChange={set("testimonialRole")} hint="e.g. Facilities Manager, Acme Ltd" />
+              <Field id="cs-quote-role" label="Client role / company" value={cs.testimonialRole} onChange={set("testimonialRole")} placeholder="e.g. Facilities Manager, Acme Ltd" />
             </div>
           </>
         )}
       </Section>
 
-      <Section title="SEO" description="Filled here so the website doesn't have to guess.">
-        <Field id="cs-seotitle" label="Title tag" max={60} value={cs.seoTitle} onChange={set("seoTitle")} hint="Browser tab and Google headline." />
-        <Field id="cs-meta" label="Meta description" max={155} value={cs.metaDescription} onChange={set("metaDescription")} multiline hint="The grey text Google shows." />
+      <Section title="SEO" description="AI fills these; check before sending" cs={cs} fields={["seoTitle", "metaDescription", "seoH1", "primaryKeyword", "supportingKeywords", "mainImageAlt"]} defaultOpen={false}>
+        <Field id="cs-seotitle" label="Title tag" max={60} value={cs.seoTitle} onChange={set("seoTitle")} />
+        <Field id="cs-meta" label="Meta description" max={155} value={cs.metaDescription} onChange={set("metaDescription")} multiline />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field id="cs-h1" label="Recommended H1" value={cs.seoH1} onChange={set("seoH1")} />
           <Field id="cs-primary" label="Primary keyword" value={cs.primaryKeyword} onChange={set("primaryKeyword")} />
         </div>
-        <Field id="cs-supporting" label="Supporting keywords" value={cs.supportingKeywords} onChange={set("supportingKeywords")} hint="Separate with semicolons." />
+        <Field id="cs-supporting" label="Supporting keywords" value={cs.supportingKeywords} onChange={set("supportingKeywords")} placeholder="Separate with semicolons" />
         <Field id="cs-alt" label="Main image alt text" value={cs.mainImageAlt} onChange={set("mainImageAlt")} />
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
@@ -299,7 +296,7 @@ export function CaseStudyForm({ job, data, onChange, websiteConnected, dirty, on
           <Textarea id="cs-links" value={cs.seoServiceLinks || ""} onChange={(e) => set("seoServiceLinks")(e.target.value)} className="min-h-24 font-mono text-xs" />
           <p className="text-xs text-gray-500">One per line, “Label | /url”.</p>
         </div>
-        <Field id="cs-notes" label="Internal publishing notes" value={cs.seoNotes} onChange={set("seoNotes")} multiline hint="Kept on file — never shown on the website." />
+        <Field id="cs-notes" label="Internal publishing notes" value={cs.seoNotes} onChange={set("seoNotes")} multiline hint="Never shown on the website." />
       </Section>
     </div>
   );

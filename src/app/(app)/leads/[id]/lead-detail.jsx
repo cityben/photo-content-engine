@@ -15,7 +15,7 @@ import { api } from "@/lib/client-api";
 import { money } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 
-const selectClass = "h-9 w-full rounded-md bg-gray-100 px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring";
+const selectClass = "h-9 w-full rounded-md border border-input bg-white shadow-field px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring";
 const when = (iso) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
 
 function useLead(initial) {

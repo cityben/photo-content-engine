@@ -11,7 +11,7 @@ export default async function NewJobPage({ searchParams }) {
   const idea = found && { id: found.id, title: found.title, keyword: found.keyword, volume: found.volume, angle: found.angle, format: FORMATS[found.format] || found.format };
   return (
     <>
-      <PageHeader title="New job" description="Photos and a short write-up in; posts, a case study and advice out." />
+      <PageHeader title="New job" description="Add photos and a short write-up. You get posts and a case study to approve." />
       <NewJobForm idea={idea || null} />
     </>
   );

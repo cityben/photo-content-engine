@@ -26,7 +26,7 @@ export default async function ReviewPage({ searchParams }) {
     <>
       <PageHeader
         title="Review"
-        description="Everything written and waiting for you, in one list. Read it, approve it, and send it on in one click — schedule the post, send the draft to the website, or mark it posted. Autopilot keeps this list topped up from the content pipeline."
+        description="Everything written and waiting for you. Approve it, then schedule or send it in one click."
       />
       <ReviewClient
         initialItems={items}

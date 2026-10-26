@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { getJob } from "@/lib/jobs";
 import { modelCatalog } from "@/lib/models";
 import { getPost, listChannels, postingEnabled, socialMode } from "@/lib/social";
+import { getTemplates } from "@/lib/template-store";
 import { websiteConfigured } from "@/lib/website-api";
 
 import { JobEditor } from "./job-editor";
@@ -18,9 +19,10 @@ export default async function JobPage({ params, searchParams }) {
   const job = await getJob(id);
   if (!job) notFound();
 
-  const [channels, catalog, posts] = await Promise.all([
+  const [channels, catalog, templates, posts] = await Promise.all([
     listChannels().catch(() => []),
     modelCatalog(),
+    getTemplates(),
     Promise.all(
       (job.posts || []).map((p) =>
         getPost(p.postId)
@@ -43,6 +45,7 @@ export default async function JobPage({ params, searchParams }) {
         models={{ active: catalog.active, shortlist: catalog.shortlist }}
         startManual={startManual}
         startTab={typeof query.tab === "string" ? query.tab : null}
+        initialTemplates={templates}
       />
     </>
   );

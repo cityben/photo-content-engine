@@ -1,6 +1,9 @@
 import { CheckCircle2, CircleAlert, Circle } from "lucide-react";
 
 import { CompanyProfileForm } from "@/components/company-profile";
+import { TemplatesSettings } from "@/components/template-editor";
+import { getTemplates } from "@/lib/template-store";
+import { cleanTemplates } from "@/lib/templates";
 import { ModelPicker } from "@/components/model-picker";
 import { WebsiteConnectionForm } from "@/components/website-connection";
 import { ChannelChip } from "@/components/post-row";
@@ -72,6 +75,7 @@ export default async function SettingsPage() {
     });
   const seoOn = dataforseoConfigured();
   const bufferCalls = socialMode() === "live" ? await settle(bufferUsage(), null, "buffer usage") : null;
+  const templates = await settle(getTemplates(), cleanTemplates(), "templates");
   const [buffer, channels, website, websiteConfig, catalog, credits, storage, seoSpend, seoBalance, profile] = await Promise.all([
     settle(socialStatus(), (e) => ({ mode: socialMode(), ok: false, error: e.message }), "buffer"),
     settle(listChannels(), [], "channels"),
@@ -89,7 +93,7 @@ export default async function SettingsPage() {
     <>
       <PageHeader
         title="Settings"
-        description="What's connected. Keys live in Vercel → Project → Settings → Environment Variables; redeploy after changing them. This page never shows their values."
+        description="Connections, company details and templates. Secret keys are never shown here."
       />
 
       <Card>
@@ -124,6 +128,16 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <CompanyProfileForm initial={profile} />
+        </CardContent>
+      </Card>
+
+      <Card id="templates" className="scroll-mt-6">
+        <CardHeader>
+          <CardTitle>Post templates</CardTitle>
+          <CardDescription>Text you want in every post of a kind: guidance the AI follows, and exact words added at the top or bottom. Also editable from any job.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TemplatesSettings initial={templates} />
         </CardContent>
       </Card>
 

@@ -558,7 +558,7 @@ export function SizerClient({ job, aiAvailable }) {
               </div>
               <p className="text-xs text-gray-500">{mode === "crop" ? "Fills the frame, cutting the edges around the subject point." : "Keeps the whole photo, filling the gaps with the background below."}</p>
               {mode === "fit" && (
-                <select value={fitBg} onChange={(e) => setFitBg(e.target.value)} aria-label="Fit background" className="h-9 w-fit rounded-md bg-gray-100 px-3 text-sm">
+                <select value={fitBg} onChange={(e) => setFitBg(e.target.value)} aria-label="Fit background" className="h-9 w-fit rounded-md border border-input bg-white px-3 text-sm shadow-field">
                   {FIT_BACKGROUNDS.map(([id, label]) => (
                     <option key={id} value={id}>
                       {label}
@@ -592,7 +592,7 @@ export function SizerClient({ job, aiAvailable }) {
               <Wand2 className="size-4 text-primary" /> AI extend
             </h2>
             <p className="text-xs text-gray-600">Used only when you click Extend on a preview. Generates the missing edges instead of cropping — one call per shape, through your AI Gateway.</p>
-            <select value={aiModelId} onChange={(e) => setAiModelId(e.target.value)} aria-label="Image model" className="h-9 rounded-md bg-gray-100 px-3 text-sm" disabled={!aiAvailable}>
+            <select value={aiModelId} onChange={(e) => setAiModelId(e.target.value)} aria-label="Image model" className="h-9 rounded-md border border-input bg-white px-3 text-sm shadow-field" disabled={!aiAvailable}>
               {EXTEND_MODELS.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.label} — ~{money(m.usd)} a shape

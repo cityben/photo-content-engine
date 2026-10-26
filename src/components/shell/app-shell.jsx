@@ -54,7 +54,7 @@ export function AppShell({ user, brandName, children }) {
   return (
     <TooltipProvider>
       <div className="flex min-h-dvh">
-        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-6 bg-white p-4 shadow-paper lg:flex print:hidden">
+        <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-5 overflow-y-auto border-r border-border bg-white p-4 lg:flex print:hidden">
           <div className="flex items-center justify-between gap-2">
             <Brand name={brandName} />
             <NotificationBell />
@@ -71,7 +71,7 @@ export function AppShell({ user, brandName, children }) {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-white px-4 py-3 shadow-paper lg:hidden print:hidden">
+          <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border bg-white/95 px-4 py-2.5 backdrop-blur lg:hidden print:hidden">
             <div className="flex items-center gap-2">
               <MobileNav footer={<UserFooter user={user} />} />
               <Brand name={brandName} />
@@ -85,7 +85,7 @@ export function AppShell({ user, brandName, children }) {
               </Button>
             </div>
           </header>
-          <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10">
+          <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
             {children}
           </main>
         </div>
@@ -97,9 +97,9 @@ export function AppShell({ user, brandName, children }) {
 export function PageHeader({ title, description, actions }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
-      <div className="flex max-w-[68ch] flex-col gap-1.5">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{title}</h1>
-        {description && <p className="text-sm text-gray-600 sm:text-base">{description}</p>}
+      <div className="flex max-w-[68ch] flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 sm:text-[28px]">{title}</h1>
+        {description && <p className="text-sm text-gray-500 sm:text-[15px]">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>

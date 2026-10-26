@@ -36,42 +36,19 @@ export function ApprovalBar({ job, section, data, dirty, onSave, onChanged, aiWr
 
   const approved = approval && !dirty;
 
+  const text = approved
+    ? `Approved by ${approval.by || "a team member"} · ${formatDateTime(approval.at)}`
+    : dirty
+      ? "Unsaved changes — save and approve to use them"
+      : !ready
+        ? `Not written yet — write the ${label} by hand or with AI`
+        : `${aiWritten ? "AI draft" : "Draft"} — read it, change anything, then approve`;
+
   return (
-    <div
-      className={cn(
-        "mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg p-3 sm:px-4",
-        approved ? "bg-marker-soft" : "bg-gray-50"
-      )}
-    >
-      <p className="flex items-start gap-2 text-sm text-gray-800">
-        {approved ? (
-          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-        ) : (
-          <CircleDot className="mt-0.5 size-4 shrink-0 text-gray-500" />
-        )}
-        <span>
-          {approved ? (
-            <>
-              <span className="font-medium">Approved</span>
-              <span className="text-gray-600">
-                {" "}
-                by {approval.by || "a team member"} · {formatDateTime(approval.at)}
-              </span>
-            </>
-          ) : dirty ? (
-            <>
-              <span className="font-medium">Unsaved changes</span>
-              <span className="text-gray-600"> — save and approve before it can go out.</span>
-            </>
-          ) : !ready ? (
-            <span className="text-gray-600">Write the {label} here — by hand or with AI — then approve it.</span>
-          ) : (
-            <>
-              <span className="font-medium">{aiWritten ? "AI draft — not approved" : "Not approved"}</span>
-              <span className="text-gray-600"> — check it, edit anything, then approve. Nothing goes out until you do.</span>
-            </>
-          )}
-        </span>
+    <div className={cn("mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2", approved ? "border-primary/15 bg-marker-soft" : "border-border bg-gray-50")}>
+      <p className="flex items-center gap-2 text-sm text-gray-700">
+        {approved ? <CheckCircle2 className="size-4 shrink-0 text-primary" /> : <CircleDot className="size-4 shrink-0 text-gray-400" />}
+        {text}
       </p>
       {approved ? (
         <Button variant="ghost" size="sm" onClick={() => set(false)} disabled={busy}>

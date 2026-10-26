@@ -19,7 +19,7 @@ function SelectTrigger({ className, children, ...props }) {
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "flex h-10 w-full items-center justify-between gap-2 whitespace-nowrap rounded-md bg-gray-100 px-3 py-2 text-sm text-gray-900 transition-[background-color,box-shadow] outline-none hover:bg-gray-200/70 focus-visible:bg-white focus-visible:ring-[3px] focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-gray-500 *:data-[slot=select-value]:line-clamp-1 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "flex h-9 w-full items-center justify-between gap-2 whitespace-nowrap rounded-md border border-input bg-white px-3 py-2 text-sm text-gray-900 shadow-field transition-[border-color,box-shadow] outline-none hover:border-gray-300 focus-visible:border-primary/50 focus-visible:ring-[3px] focus-visible:ring-ring disabled:cursor-not-allowed disabled:bg-gray-50 disabled:opacity-60 data-[placeholder]:text-gray-400 *:data-[slot=select-value]:line-clamp-1 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
