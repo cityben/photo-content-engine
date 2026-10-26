@@ -1,39 +1,31 @@
 import { redirect } from "next/navigation";
 import { AlertCircle, LockKeyhole } from "lucide-react";
 
-import { auth, providerList, signIn } from "@/auth";
+import { auth, microsoftEnabled, passwordAccountsConfigured } from "@/auth";
+import { signInWithMicrosoft } from "@/app/login/actions";
+import { PasswordForm } from "@/components/password-form";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DEFAULT_ALLOWED_DOMAINS } from "@/lib/access";
+import { safeCallback } from "@/lib/redirects";
 
 export const metadata = { title: "Sign in — Photo Content Engine" };
 
+// Errors that arrive via redirect (Microsoft sign-in, misconfiguration).
 const ERRORS = {
-  AccessDenied: "That account doesn't have access. Sign in with your company account.",
+  AccessDenied: "That Microsoft account doesn't have access. Use your company account.",
   Configuration: "Sign-in isn't set up correctly on the server. Check the AUTH_ settings.",
-  Verification: "That sign-in link has expired. Try again.",
 };
-
-// Only same-site paths, so the login page can't be used to bounce users elsewhere.
-function safeCallback(value) {
-  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//")
-    ? value
-    : "/";
-}
 
 export default async function LoginPage({ searchParams }) {
   const params = await searchParams;
-  const redirectTo = safeCallback(params?.callbackUrl);
+  const callbackUrl = safeCallback(params?.callbackUrl);
 
   const session = await auth();
-  if (session?.user) redirect(redirectTo);
+  if (session?.user) redirect(callbackUrl);
 
   const error = params?.error ? ERRORS[params.error] || "Sign-in failed. Try again." : null;
-  const domains = (process.env.AUTH_ALLOWED_DOMAINS ?? DEFAULT_ALLOWED_DOMAINS)
-    .split(",")
-    .map((d) => d.trim())
-    .filter(Boolean);
+  const passwords = passwordAccountsConfigured();
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -46,14 +38,10 @@ export default async function LoginPage({ searchParams }) {
             </span>
             <div className="flex flex-col gap-1.5">
               <CardTitle className="text-xl">Sign in</CardTitle>
-              <CardDescription>
-                {domains.length
-                  ? `Use your ${domains.map((d) => `@${d}`).join(" or ")} account.`
-                  : "Use your company account."}
-              </CardDescription>
+              <CardDescription>Ask your administrator if you need an account.</CardDescription>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          <CardContent className="flex flex-col gap-5">
             {error && (
               <p
                 role="alert"
@@ -63,25 +51,29 @@ export default async function LoginPage({ searchParams }) {
                 {error}
               </p>
             )}
-            {providerList.length ? (
-              providerList.map((provider) => (
-                <form
-                  key={provider.id}
-                  action={async () => {
-                    "use server";
-                    await signIn(provider.id, { redirectTo });
-                  }}
-                >
-                  <Button type="submit" size="lg" className="w-full">
-                    Continue with {provider.name}
-                  </Button>
-                </form>
-              ))
+
+            {passwords ? (
+              <PasswordForm callbackUrl={callbackUrl} />
             ) : (
               <p className="rounded-md bg-gray-100 px-3 py-2.5 text-sm text-gray-700">
-                No sign-in method is configured. Set the Microsoft or Google AUTH_ variables
-                described in docs/SETUP.md.
+                No accounts are set up yet. Add people to AUTH_USERS — see docs/SETUP.md.
               </p>
+            )}
+
+            {microsoftEnabled && (
+              <>
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span className="h-px flex-1 bg-gray-100" />
+                  or
+                  <span className="h-px flex-1 bg-gray-100" />
+                </div>
+                <form action={signInWithMicrosoft}>
+                  <input type="hidden" name="callbackUrl" value={callbackUrl} />
+                  <Button type="submit" variant="outline" size="lg" className="w-full">
+                    Continue with Microsoft 365
+                  </Button>
+                </form>
+              </>
             )}
           </CardContent>
         </Card>

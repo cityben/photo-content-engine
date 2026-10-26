@@ -53,7 +53,7 @@ Visit `http://localhost:3000` — you should see the upload interface.
 
 ### Sign-in
 
-The app only lets in people with a company account. No passwords are stored — sign-in is handled by Microsoft or Google. Set up **whichever one your company email runs on** (or both).
+Everyone signs in with an email and password you give them. Microsoft 365 sign-in can be switched on as well, later.
 
 First, generate a secret that encrypts session cookies, and add it as `AUTH_SECRET`:
 
@@ -61,7 +61,33 @@ First, generate a secret that encrypts session cookies, and add it as `AUTH_SECR
 openssl rand -base64 32
 ```
 
-#### Microsoft 365
+#### Add a person
+
+There's no sign-up page — you create each account. Run this on your own machine (after `npm install`) or in a GitHub Codespace, **not** anywhere the password would be logged or shared:
+
+```bash
+npm run hash-password -- ben@example.co.uk
+```
+
+It asks for the password (hidden, at least 12 characters) and prints one line like:
+
+```
+ben@example.co.uk|scrypt.15.8.1.ikXZaRn...
+```
+
+Put that line in `AUTH_USERS`. For several people, separate the lines with commas:
+
+```env
+AUTH_USERS=ben@example.co.uk|scrypt...,sam@example.co.uk|scrypt...
+```
+
+The line holds a one-way hash, not the password, but still treat it as a secret. To **change a password** run the command again and replace that person's entry; to **remove someone** delete their entry. On Vercel, redeploy after changing `AUTH_USERS` so it takes effect.
+
+After 5 wrong passwords for an email (or from one IP address) within 15 minutes, sign-in is paused for 15 minutes. Sessions expire after 12 hours.
+
+#### Microsoft 365 (optional)
+
+Shows a "Continue with Microsoft 365" button alongside the password form. Skip this until you want it.
 
 1. Go to [entra.microsoft.com](https://entra.microsoft.com) → **Applications → App registrations → New registration**
 2. Name: `Photo Content Engine`. Supported account types: **Accounts in this organizational directory only (Single tenant)**
@@ -71,22 +97,7 @@ openssl rand -base64 32
    - **Directory (tenant) ID** → put it into `AUTH_MICROSOFT_ENTRA_ID_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0`
 5. **Certificates & secrets → New client secret** → copy the **Value** → `AUTH_MICROSOFT_ENTRA_ID_SECRET`
 
-The tenant ID is required: the app rejects Microsoft accounts from any other organisation, even if their email looks like yours.
-
-#### Google Workspace
-
-1. Go to [console.cloud.google.com](https://console.cloud.google.com) → create a project → **APIs & Services → OAuth consent screen**
-2. User type: **Internal** (only people in your Workspace can use it)
-3. **Credentials → Create credentials → OAuth client ID** → type **Web application**
-4. Authorised redirect URI: `http://localhost:3000/api/auth/callback/google` (add your live URL later)
-5. Copy the **Client ID** → `AUTH_GOOGLE_ID` and **Client secret** → `AUTH_GOOGLE_SECRET`
-
-#### Who gets in
-
-- `AUTH_ALLOWED_DOMAINS` — email domains allowed in (default `example.co.uk`)
-- `AUTH_ALLOWED_EMAILS` — extra individual addresses, e.g. a marketing agency (Google sign-in only, unless they are guests in your Microsoft tenant)
-
-Anyone else sees "That account doesn't have access". Sessions expire after 12 hours.
+The tenant ID is required: the app rejects Microsoft accounts from any other organisation, even if their email looks like yours. Within your tenant, only emails on `AUTH_ALLOWED_DOMAINS` (default `example.co.uk`) or `AUTH_ALLOWED_EMAILS` get in.
 
 ### Vercel AI Gateway Key
 
@@ -157,15 +168,14 @@ The app runs on [Vercel](https://vercel.com) (the free Hobby plan is enough to t
 | Variable | Needed? |
 |---|---|
 | `AUTH_SECRET` | Yes |
-| `AUTH_MICROSOFT_ENTRA_ID_ID`, `_SECRET`, `_ISSUER` | If using Microsoft 365 |
-| `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` | If using Google Workspace |
-| `AUTH_ALLOWED_DOMAINS` | Optional (default `example.co.uk`) |
+| `AUTH_USERS` | Yes — see [Add a person](#add-a-person) |
+| `AUTH_MICROSOFT_ENTRA_ID_ID`, `_SECRET`, `_ISSUER` | Only if using Microsoft 365 sign-in |
 | `BUFFER_API_TOKEN`, `BUFFER_PROFILE_IDS` | For Buffer |
 | `ENABLE_BUFFER_POSTING` | `true` to send posts to Buffer |
 | `WEBSITE_API_TOKEN`, `WEBSITE_API_SECRET` | For website drafts |
 | `AI_GATEWAY_API_KEY` | No — Vercel signs in to the AI Gateway automatically |
 
-Then **Deploy**. You get a URL like `photo-content-engine.vercel.app` straight away.
+Then **Deploy**. You get a URL like `photo-content-engine.vercel.app` straight away — that's enough to test with; steps 3–4 are optional.
 
 **3. Add your own domain**
 
@@ -173,27 +183,23 @@ Then **Deploy**. You get a URL like `photo-content-engine.vercel.app` straight a
 2. Vercel shows a DNS record — usually a **CNAME** for `content` pointing to `cname.vercel-dns.com`. Add it wherever your domain's DNS is managed (your registrar, Cloudflare, etc.)
 3. Wait for the domain to show **Valid Configuration** (minutes, occasionally up to a few hours). HTTPS is set up automatically.
 
-**4. Tell Microsoft/Google about the live URL**
+**4. Microsoft sign-in only: register the live URL**
 
-Add the live callback URL to the app registration from [Sign-in](#sign-in), alongside the localhost one:
-
-- Microsoft: `https://content.acme.co.uk/api/auth/callback/microsoft-entra-id`
-- Google: `https://content.acme.co.uk/api/auth/callback/google`
-
-Sign-in only works on URLs registered here. Preview deployments (the per-branch `*.vercel.app` URLs) aren't registered, so test sign-in on your main domain.
+If you turned on Microsoft 365 sign-in, add the live callback URL to the app registration alongside the localhost one, e.g. `https://content.acme.co.uk/api/auth/callback/microsoft-entra-id`. Password sign-in needs nothing here.
 
 **5. Test it**
 
-Open the domain in a browser, sign in with your company account, upload a photo. Every push to `main` redeploys automatically.
+Open the URL in a browser, sign in with an email and password from `AUTH_USERS`, upload a photo. Every push to `main` redeploys automatically.
 
 ## Troubleshooting
 
 ### Sign-in fails
 
-- **"That account doesn't have access"** — the email isn't on `AUTH_ALLOWED_DOMAINS` / `AUTH_ALLOWED_EMAILS`, or (Microsoft) it belongs to a different tenant, or (Google) it's a personal Gmail rather than a Workspace account
-- **"Sign-in isn't set up correctly"** — `AUTH_SECRET` is missing, or a client ID/secret is wrong. The server logs say which
-- **Microsoft/Google "redirect URI mismatch"** — add the exact callback URL from step 4 above
-- **"No sign-in method is configured"** — neither the Microsoft nor the Google variables are set
+- **"That email and password don't match"** — check the entry in `AUTH_USERS` (no spaces inside it, entries separated by commas) and that you redeployed after changing it. After 5 failures, wait 15 minutes
+- **"No accounts are set up yet"** — `AUTH_USERS` is empty or every entry is malformed
+- **"Sign-in isn't set up correctly"** — `AUTH_SECRET` is missing, or a Microsoft client ID/secret is wrong. The server logs say which
+- **"That Microsoft account doesn't have access"** — the account is from a different tenant, or its email isn't on `AUTH_ALLOWED_DOMAINS` / `AUTH_ALLOWED_EMAILS`
+- **Microsoft "redirect URI mismatch"** — add the exact callback URL from step 4 above
 
 ### "Unauthenticated. Configure AI_GATEWAY_API_KEY"
 
@@ -277,6 +283,7 @@ docs/
 | `npm run dev` | Start dev server |
 | `npm test` | Run tests (watch) |
 | `npm run test:ci` | Run tests once |
+| `npm run hash-password -- <email>` | Create an `AUTH_USERS` entry |
 | `npm run build` | Build for production |
 | `npm start` | Start production server |
 | `npm run lint` | Check code quality |

@@ -3,6 +3,7 @@
  */
 
 import { isAllowedSignIn, tenantIdFromIssuer } from '../src/lib/access';
+import { safeCallback } from '../src/lib/redirects';
 
 const TENANT = '11111111-2222-3333-4444-555555555555';
 const env = {
@@ -21,32 +22,8 @@ describe('tenantIdFromIssuer', () => {
 });
 
 describe('isAllowedSignIn', () => {
-  describe('Google', () => {
-    const google = (profile) => isAllowedSignIn({ provider: 'google', profile }, env);
-
-    it('allows a verified Workspace account on the company domain', () => {
-      expect(google({ email: 'ben@example.co.uk', email_verified: true, hd: 'example.co.uk' })).toBe(true);
-    });
-
-    it('rejects an unverified email', () => {
-      expect(google({ email: 'ben@example.co.uk', email_verified: false, hd: 'example.co.uk' })).toBe(false);
-    });
-
-    it('rejects a company-domain email that is not in the Workspace', () => {
-      expect(google({ email: 'ben@example.co.uk', email_verified: true })).toBe(false);
-    });
-
-    it('rejects other domains', () => {
-      expect(google({ email: 'someone@gmail.com', email_verified: true })).toBe(false);
-    });
-
-    it('allows an explicitly allowlisted outside email', () => {
-      const result = isAllowedSignIn(
-        { provider: 'google', profile: { email: 'Agency@Gmail.com', email_verified: true } },
-        { ...env, AUTH_ALLOWED_EMAILS: 'agency@gmail.com' }
-      );
-      expect(result).toBe(true);
-    });
+  it('allows password sign-ins (already checked by authorize)', () => {
+    expect(isAllowedSignIn({ provider: 'credentials', email: 'a@b.com' }, env)).toBe(true);
   });
 
   describe('Microsoft Entra ID', () => {
@@ -60,22 +37,39 @@ describe('isAllowedSignIn', () => {
       expect(entra({ email: 'ben@example.co.uk', tid: '99999999-2222-3333-4444-555555555555' })).toBe(false);
     });
 
+    it('rejects other domains even within the tenant', () => {
+      expect(entra({ email: 'guest@gmail.com', tid: TENANT })).toBe(false);
+    });
+
+    it('allows an allowlisted guest within the tenant', () => {
+      expect(entra({ email: 'guest@gmail.com', tid: TENANT }, { ...env, AUTH_ALLOWED_EMAILS: 'guest@gmail.com' })).toBe(true);
+    });
+
     it('rejects everyone when the issuer is not tenant-specific', () => {
       const common = { ...env, AUTH_MICROSOFT_ENTRA_ID_ISSUER: 'https://login.microsoftonline.com/common/v2.0' };
       expect(entra({ email: 'ben@example.co.uk', tid: TENANT }, common)).toBe(false);
     });
-  });
 
-  it('defaults to the example.co.uk domain', () => {
-    const result = isAllowedSignIn(
-      { provider: 'google', profile: { email: 'a@example.co.uk', email_verified: true, hd: 'example.co.uk' } },
-      {}
-    );
-    expect(result).toBe(true);
+    it('defaults to the example.co.uk domain', () => {
+      const e = { AUTH_MICROSOFT_ENTRA_ID_ISSUER: env.AUTH_MICROSOFT_ENTRA_ID_ISSUER };
+      expect(entra({ email: 'a@example.co.uk', tid: TENANT }, e)).toBe(true);
+    });
   });
 
   it('denies unknown providers and missing emails', () => {
     expect(isAllowedSignIn({ provider: 'github', profile: { email: 'a@example.co.uk' } }, env)).toBe(false);
-    expect(isAllowedSignIn({ provider: 'google', profile: {} }, env)).toBe(false);
+    expect(isAllowedSignIn({ provider: 'microsoft-entra-id', profile: { tid: TENANT } }, env)).toBe(false);
+  });
+});
+
+describe('safeCallback', () => {
+  it('keeps same-site paths', () => {
+    expect(safeCallback('/foo?x=1')).toBe('/foo?x=1');
+  });
+
+  it('rejects other sites', () => {
+    expect(safeCallback('//evil.com')).toBe('/');
+    expect(safeCallback('https://evil.com')).toBe('/');
+    expect(safeCallback(null)).toBe('/');
   });
 });

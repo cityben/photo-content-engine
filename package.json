@@ -9,7 +9,8 @@
     "start": "next start",
     "test": "jest --watch",
     "test:ci": "jest --ci",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "hash-password": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/hash-password.mjs"
   },
   "dependencies": {
     "ai": "^7.0.153",

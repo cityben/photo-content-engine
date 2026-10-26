@@ -1,24 +1,55 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 
 import { isAllowedSignIn } from "@/lib/access";
+import {
+  checkCredentials,
+  clearFailures,
+  isLockedOut,
+  parseUsers,
+  recordFailure,
+} from "@/lib/passwords";
 
-// Only offer the sign-in methods that have credentials configured.
-const configured = [
-  process.env.AUTH_MICROSOFT_ENTRA_ID_ID && {
-    provider: MicrosoftEntraID({ name: "Microsoft 365" }),
-    label: "Microsoft 365",
-  },
-  process.env.AUTH_GOOGLE_ID && {
-    provider: Google({ name: "Google Workspace" }),
-    label: "Google Workspace",
-  },
-].filter(Boolean);
+function clientIp(request) {
+  const forwarded = request?.headers?.get?.("x-forwarded-for");
+  return forwarded ? forwarded.split(",")[0].trim() : null;
+}
 
-const providers = configured.map((c) => c.provider);
+const providers = [
+  Credentials({
+    credentials: {
+      email: { label: "Email", type: "email" },
+      password: { label: "Password", type: "password" },
+    },
+    async authorize(credentials, request) {
+      const email = String(credentials?.email ?? "").trim().toLowerCase();
+      const ip = clientIp(request);
+      const keys = [`email:${email}`, ip && `ip:${ip}`];
 
-export const providerList = configured.map((c) => ({ id: c.provider.id, name: c.label }));
+      if (!email || !credentials?.password || isLockedOut(keys)) return null;
+
+      const user = await checkCredentials(email, credentials.password);
+      if (!user) {
+        recordFailure(keys);
+        console.warn(`[auth] Failed password sign-in for ${email}${ip ? ` from ${ip}` : ""}`);
+        return null;
+      }
+      clearFailures([`email:${email}`]);
+      return { id: user, email: user, name: user.split("@")[0] };
+    },
+  }),
+];
+
+// Optional: company Microsoft 365 sign-in, enabled when its keys are set.
+export const microsoftEnabled = Boolean(process.env.AUTH_MICROSOFT_ENTRA_ID_ID);
+if (microsoftEnabled) {
+  providers.push(MicrosoftEntraID({ name: "Microsoft 365" }));
+}
+
+export function passwordAccountsConfigured() {
+  return parseUsers().size > 0;
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers,

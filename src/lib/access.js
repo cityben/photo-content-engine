@@ -1,13 +1,12 @@
 /**
- * Who may sign in. Kept free of Auth.js imports so it can be unit tested.
+ * Who may sign in through Microsoft. Kept free of Auth.js imports so it can
+ * be unit tested. (Email + password accounts are allowed by being listed in
+ * AUTH_USERS — see passwords.js.)
  *
- * Access is granted when the account's email is on AUTH_ALLOWED_EMAILS, or its
- * domain is on AUTH_ALLOWED_DOMAINS (default: example.co.uk) — and the
- * identity provider vouches for that email:
- *   - Google: the email must be verified, and for domain access the account
- *     must belong to that Google Workspace (the `hd` claim).
- *   - Microsoft: the account must come from your own Entra ID tenant (`tid`),
- *     because Entra email claims are not verified across tenants.
+ * A Microsoft account is let in when it comes from your own Entra ID tenant
+ * (`tid`) — Entra email claims are not verified across tenants — and its email
+ * is on AUTH_ALLOWED_EMAILS or its domain is on AUTH_ALLOWED_DOMAINS
+ * (default: example.co.uk).
  */
 
 export const DEFAULT_ALLOWED_DOMAINS = "example.co.uk";
@@ -27,28 +26,21 @@ export function tenantIdFromIssuer(issuer) {
 }
 
 export function isAllowedSignIn({ provider, profile = {}, email }, env = process.env) {
+  // authorize() in src/auth.js has already checked the password.
+  if (provider === "credentials") return true;
+
+  if (provider !== "microsoft-entra-id") return false;
+
   const address = (email || profile.email || "").trim().toLowerCase();
   if (!address.includes("@")) return false;
 
   const domain = address.split("@").pop();
-  const allowedEmails = csv(env.AUTH_ALLOWED_EMAILS);
-  const allowedDomains = csv(env.AUTH_ALLOWED_DOMAINS ?? DEFAULT_ALLOWED_DOMAINS);
-  const byEmail = allowedEmails.includes(address);
-  const byDomain = allowedDomains.includes(domain);
+  const listed =
+    csv(env.AUTH_ALLOWED_EMAILS).includes(address) ||
+    csv(env.AUTH_ALLOWED_DOMAINS ?? DEFAULT_ALLOWED_DOMAINS).includes(domain);
+  if (!listed) return false;
 
-  if (!byEmail && !byDomain) return false;
-
-  if (provider === "google") {
-    if (profile.email_verified !== true) return false;
-    if (byEmail) return true;
-    return typeof profile.hd === "string" && profile.hd.toLowerCase() === domain;
-  }
-
-  if (provider === "microsoft-entra-id") {
-    const tenantId = tenantIdFromIssuer(env.AUTH_MICROSOFT_ENTRA_ID_ISSUER);
-    if (!tenantId) return false;
-    return typeof profile.tid === "string" && profile.tid.toLowerCase() === tenantId;
-  }
-
-  return false;
+  const tenantId = tenantIdFromIssuer(env.AUTH_MICROSOFT_ENTRA_ID_ISSUER);
+  if (!tenantId) return false;
+  return typeof profile.tid === "string" && profile.tid.toLowerCase() === tenantId;
 }

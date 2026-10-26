@@ -50,7 +50,7 @@ cp .env.example .env.local
 ```
 
 Then add your API keys:
-- `AUTH_SECRET` plus Microsoft 365 or Google Workspace sign-in keys — see [Sign-in](docs/SETUP.md#sign-in)
+- `AUTH_SECRET` and `AUTH_USERS` (email + password accounts) — see [Sign-in](docs/SETUP.md#sign-in)
 - `AI_GATEWAY_API_KEY` — from vercel.com → AI Gateway → API Keys (not needed on Vercel deployments, which authenticate with OIDC)
 - `BUFFER_API_TOKEN` — from buffer.com/developers
 - `BUFFER_PROFILE_IDS` — comma-separated LinkedIn, Instagram, Twitter profile IDs (in that order)
@@ -93,8 +93,9 @@ Deploy on Vercel and point a subdomain such as `content.acme.co.uk` at it. Step-
 
 ## Security
 
-- Every page and API route requires sign-in with a company Microsoft 365 or Google Workspace account. No passwords are stored by this app.
-- Access is limited to `AUTH_ALLOWED_DOMAINS` (default `example.co.uk`) plus any addresses in `AUTH_ALLOWED_EMAILS`. Microsoft sign-ins must also come from your own tenant; Google sign-ins must be verified accounts in your Workspace.
+- Every page and API route requires sign-in. There's no public sign-up: accounts are listed in `AUTH_USERS`.
+- Passwords are stored only as salted scrypt hashes (min 12 characters), checked in constant time. Sign-in pauses for 15 minutes after 5 wrong attempts per email or IP.
+- Optional Microsoft 365 sign-in, restricted to your own tenant and `AUTH_ALLOWED_DOMAINS`.
 - Sessions are encrypted cookies that expire after 12 hours.
 - API keys (AI Gateway, Buffer, website) stay on the server and never reach the browser.
 
@@ -102,7 +103,7 @@ Deploy on Vercel and point a subdomain such as `content.acme.co.uk` at it. Step-
 
 ```
 src/
-├── auth.js                          # Auth.js config (Microsoft 365 / Google)
+├── auth.js                          # Auth.js config (email + password, optional Microsoft 365)
 ├── proxy.js                         # Requires sign-in on every route
 ├── app/
 │   ├── page.jsx                     # Upload + content UI
@@ -121,7 +122,8 @@ src/
 │   └── buffer-preview.jsx           # Editable post preview + send to Buffer
 └── lib/
     ├── ai.js                        # Vercel AI Gateway calls (AI SDK)
-    ├── access.js                    # Who may sign in
+    ├── access.js                    # Who may sign in with Microsoft
+    ├── passwords.js                 # Password hashing, AUTH_USERS, lockout
     ├── session.js                   # Session check for API routes
     ├── content-generator.js         # Prompt templates for each format
     ├── formats.js                   # Format definitions, copy/export text
@@ -136,7 +138,8 @@ docs/
 tests/
 ├── photo-generation.test.js
 ├── formats.test.js
-└── access.test.js
+├── access.test.js
+└── passwords.test.js
 ```
 
 ## Configuration
