@@ -83,11 +83,15 @@ async function websiteForMonth(r) {
   if (!(await websiteConfigured())) return { configured: false };
   const { siteUrl } = await websiteConfig();
   const { value } = await cached(`report-website-${siteUrl}-${r.month}-${r.to}`, 3 * 3600000, async () => {
+    const log = (name) => (error) => {
+      console.error(`[reports] website ${name}:`, error.message);
+      return null;
+    };
     const [summary, traffic, queries, pages] = await Promise.all([
-      getReportSummary(r).catch(() => null),
-      getTrafficReport(r).catch(() => null),
-      getSearchQueries({ ...r, limit: 50 }).catch(() => null),
-      getPagesReport({ ...r, limit: 10 }).catch(() => null),
+      getReportSummary(r).catch(log("summary")),
+      getTrafficReport(r).catch(log("traffic")),
+      getSearchQueries({ ...r, limit: 50 }).catch(log("queries")),
+      getPagesReport({ ...r, limit: 10 }).catch(log("pages")),
     ]);
     return { summary, traffic, queries, pages };
   });

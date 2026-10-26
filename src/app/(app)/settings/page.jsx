@@ -17,6 +17,14 @@ import { checkWebsiteConnection, websiteConfigPublic } from "@/lib/website-api";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Settings — Content Engine" };
 
+// Object.groupBy needs Node 21+; Vercel projects can still be on Node 20.
+function groupBy(list, keyOf) {
+  return list.reduce((acc, item) => {
+    (acc[keyOf(item)] ||= []).push(item);
+    return acc;
+  }, {});
+}
+
 function Env({ children }) {
   return <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800">{children}</code>;
 }
@@ -123,7 +131,7 @@ export default async function SettingsPage() {
               Sandbox: these are pretend channels. Add <Env>BUFFER_API_KEY</Env> in Vercel and redeploy to see your real Buffer accounts.
             </p>
           )}
-          {Object.entries(Object.groupBy(channels, (c) => c.organizationName || "")).map(([org, list]) => (
+          {Object.entries(groupBy(channels, (c) => c.organizationName || "")).map(([org, list]) => (
             <div key={org || "default"} className="flex flex-col gap-1.5">
               {org && <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{org}</p>}
               <ul className="flex flex-col gap-1.5">

@@ -64,7 +64,14 @@ async function saved() {
 export async function websiteConfig() {
   const s = await saved();
   const envUrl = process.env.WEBSITE_API_BASE || process.env.NEXT_PUBLIC_WEBSITE_URL || DEFAULT_SITE;
-  const { siteUrl, apiBase } = normaliseApiUrl(s?.apiUrl || envUrl);
+  let urls;
+  try {
+    urls = normaliseApiUrl(s?.apiUrl || envUrl);
+  } catch (error) {
+    console.error("[website] bad address, using the default:", error.message);
+    urls = normaliseApiUrl(DEFAULT_SITE);
+  }
+  const { siteUrl, apiBase } = urls;
   let apiKey = "";
   let keySource = null;
   let keyError = null;
@@ -166,7 +173,9 @@ async function request(path, { method = "GET", body, headers = {} } = {}, config
   }
   const json = await res.json().catch(() => null);
   if (!res.ok) {
-    const err = json?.error || {};
+    // v1 errors are { error: { code, message, details } }; report builders
+    // answer { error: "message" }.
+    const err = typeof json?.error === "string" ? { message: json.error } : json?.error || {};
     const detail = err.details ? ` (${Object.entries(err.details).map(([k, v]) => `${k}: ${v}`).join("; ")})` : "";
     const hint =
       res.status === 404 && !err.message

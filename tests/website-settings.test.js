@@ -7,6 +7,11 @@ import { hintFor, openSecret, sealSecret } from '../src/lib/secret-box';
 import { checkWebsiteConnection, normaliseApiUrl, saveWebsiteConnection, websiteConfig, websiteConfigPublic } from '../src/lib/website-api';
 import { collection } from '../src/lib/store';
 
+jest.mock('ai', () => ({
+  gateway: { getAvailableModels: jest.fn(async () => ({ models: [] })) },
+  generateText: jest.fn(),
+  Output: { object: jest.fn((o) => o) },
+}));
 jest.mock('node:dns/promises', () => ({ lookup: jest.fn(async (host) => (host === 'intranet.local' ? [{ address: '10.0.0.5' }] : [{ address: '203.0.113.10' }])) }));
 
 const user = { email: 'ben@example.co.uk' };
@@ -71,5 +76,18 @@ describe('saved connection', () => {
     const check = await checkWebsiteConnection({ apiUrl: 'https://www.example.co.uk', apiKey: 'cc_live_x' });
     expect(check.error).toMatch(/404 — https:\/\/www\.example\.co\.uk\/api\/v1 has no v1 API/);
     await expect(saveWebsiteConnection({ apiUrl: 'https://intranet.local' }, user)).rejects.toThrow('public internet');
+  });
+});
+
+describe('report errors', () => {
+  it('reads the website\'s string errors and explains report failures from them', async () => {
+    const { getReportSummary } = require('../src/lib/website-api');
+    const { reportFailure } = require('../src/lib/growth');
+    process.env.WEBSITE_API_KEY = 'cc_live_x';
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({ error: 'GA4 property not connected' }) });
+    await expect(getReportSummary({})).rejects.toThrow('GA4 property not connected');
+    expect(reportFailure(['summary: Website API error 403'])).toMatch(/analytics:read/);
+    expect(reportFailure(['summary: GA4 property not connected'])).toBe("The website couldn't build its reports — summary: GA4 property not connected.");
+    delete process.env.WEBSITE_API_KEY;
   });
 });

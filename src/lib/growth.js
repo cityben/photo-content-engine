@@ -18,6 +18,19 @@ import {
 
 const day = (d) => d.toISOString().slice(0, 10);
 
+/** Explain a report failure from the website's own errors, not a guess. */
+export function reportFailure(errors) {
+  const text = errors.join(" · ");
+  const hint = /401|rejected|unauthor/i.test(text)
+    ? " The API key was rejected — check it in Settings → Website."
+    : /403|scope|analytics:read|forbidden|permission/i.test(text)
+      ? " The key needs the analytics:read scope (website admin → API keys)."
+      : /404|no v1 API/i.test(text)
+        ? " Check the website address in Settings → Website."
+        : "";
+  return `The website couldn't build its reports — ${text || "no detail given"}.${hint}`;
+}
+
 async function settle(promise) {
   try {
     return { data: await promise, error: null };
@@ -42,13 +55,18 @@ export async function growthData({ days = 30, refresh = false } = {}) {
         key,
         3 * 3600000,
         async () => {
+          const errors = [];
+          const keep = (name) => (error) => {
+            errors.push(`${name}: ${error.message}`);
+            return null;
+          };
           const [summary, traffic, queries] = await Promise.all([
-            getReportSummary(range).catch(() => null),
-            getTrafficReport(range).catch(() => null),
-            getSearchQueries({ ...range, limit: 100 }).catch(() => null),
+            getReportSummary(range).catch(keep("summary")),
+            getTrafficReport(range).catch(keep("traffic")),
+            getSearchQueries({ ...range, limit: 100 }).catch(keep("search queries")),
           ]);
-          if (!summary && !traffic && !queries) throw new Error("The website returned no report data. Check the key has analytics:read.");
-          return { summary, traffic, queries };
+          if (!summary && !traffic && !queries) throw new Error(reportFailure(errors));
+          return { summary, traffic, queries, partialErrors: errors };
         },
         { refresh }
       )

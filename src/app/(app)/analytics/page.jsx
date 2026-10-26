@@ -99,7 +99,9 @@ export default async function AnalyticsPage({ searchParams }) {
             {series && social.posts.length ? (
               <ImpressionsChart data={series.data} metricLabel={series.metric} />
             ) : (
-              <p className="rounded-lg bg-gray-50 p-6 text-sm text-gray-600">No published posts in this range yet.</p>
+              <p className="rounded-lg bg-gray-50 p-6 text-sm text-gray-600">
+                No posts went out through Buffer in this range.{!social?.simulated && " Buffer only reports posts published through Buffer — anything posted straight on LinkedIn or Instagram won't show here. Schedule from a job or the calendar and its numbers appear the day after it goes out."}
+              </p>
             )}
           </CardContent>
         </Card>
