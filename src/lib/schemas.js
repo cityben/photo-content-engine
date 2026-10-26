@@ -25,6 +25,7 @@ export const jobInputSchema = z.object({
   writeUp: z.string().max(50000).optional(),
   details: detailsSchema.optional(),
   images: z.array(imageSchema).max(20).optional(),
+  mainImage: z.string().max(2000).refine(isOwnImageUrl, "Unknown photo").nullable().optional(),
 });
 
 export const contentPatchSchema = z.record(z.string(), z.any());

@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/shell/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { needsApproval } from "@/lib/content";
+import { mainImageOf, needsApproval } from "@/lib/content";
 import { listJobs } from "@/lib/jobs";
 import { formatDateTime } from "@/lib/time";
 
@@ -61,7 +61,7 @@ export default async function JobsPage() {
                 className="group flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-paper outline-none transition-shadow hover:shadow-paper-lg focus-visible:ring-[3px] focus-visible:ring-ring"
               >
                 <div className="relative aspect-[16/10] bg-gray-100">
-                  {job.images?.[0] && <Image src={job.images[0].url} alt="" fill unoptimized sizes="(min-width:1280px) 400px, 50vw" className="object-cover" />}
+                  {mainImageOf(job) && <Image src={mainImageOf(job).url} alt="" fill unoptimized sizes="(min-width:1280px) 400px, 50vw" className="object-cover" />}
                   {job.images?.length > 1 && (
                     <span className="absolute right-2 bottom-2 rounded-full bg-white/95 px-2 py-0.5 text-xs text-gray-700 shadow-paper">{job.images.length} photos</span>
                   )}

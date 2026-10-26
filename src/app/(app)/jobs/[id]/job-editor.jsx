@@ -31,7 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/client-api";
-import { APPROVABLE, blankContent, needsApproval } from "@/lib/content";
+import { APPROVABLE, blankContent, mainImageOf, needsApproval, orderedImages } from "@/lib/content";
 import { formatDateTime } from "@/lib/time";
 
 import { ApprovalBar } from "./approval-bar";
@@ -187,6 +187,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
     writeUp: initialJob.writeUp,
     details: initialJob.details || {},
     images: initialJob.images || [],
+    mainImage: mainImageOf(initialJob)?.url || null,
   });
   const [dirty, setDirty] = useState(new Set());
   const [saving, setSaving] = useState(false);
@@ -195,8 +196,8 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
     startManual && initialJob.source === "word" ? "caseStudy" : startManual || hasContent(initialJob.content) ? "linkedin" : "brief"
   );
   const [selected, setSelected] = useState(() => ({
-    linkedin: (initialJob.images || []).slice(0, 1).map((i) => i.url),
-    instagram: (initialJob.images || []).slice(0, 10).map((i) => i.url),
+    linkedin: orderedImages(initialJob).slice(0, 1).map((i) => i.url),
+    instagram: orderedImages(initialJob).slice(0, 10).map((i) => i.url),
   }));
 
   const markDirty = (key) => setDirty((d) => new Set(d).add(key));
@@ -422,6 +423,11 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
               <div className="flex flex-col gap-6">
                 <PhotoUploader
                   images={brief.images}
+                  mainUrl={brief.mainImage}
+                  onMainChange={(mainImage) => {
+                    setBrief((b) => ({ ...b, mainImage }));
+                    markDirty("brief");
+                  }}
                   onChange={(images) => {
                     setBrief((b) => ({ ...b, images }));
                     markDirty("brief");

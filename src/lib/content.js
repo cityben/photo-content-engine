@@ -51,3 +51,15 @@ export function blankContent(job, existing = {}) {
     },
   };
 }
+
+/** The main building photo (case study hero/cards): chosen one, else the first. */
+export function mainImageOf(job) {
+  const images = job.images || [];
+  return images.find((i) => i.url === job.mainImage) || images[0] || null;
+}
+
+/** Photos with the main building photo first, then the rest in their order. */
+export function orderedImages(job) {
+  const main = mainImageOf(job);
+  return main ? [main, ...(job.images || []).filter((i) => i.url !== main.url)] : [];
+}

@@ -5,7 +5,7 @@
 
 import { generateJobContent, SECTIONS } from "@/lib/ai";
 import { cached } from "@/lib/cache";
-import { APPROVABLE, hasSubstance, SECTION_LABEL } from "@/lib/content";
+import { APPROVABLE, hasSubstance, orderedImages, SECTION_LABEL } from "@/lib/content";
 import { deleteImage } from "@/lib/media";
 import { createPost, listChannels, socialMode } from "@/lib/social";
 import { collection } from "@/lib/store";
@@ -62,13 +62,14 @@ export async function setApproval(id, section, approved, user) {
   });
 }
 
-export async function createJob({ title, writeUp, details, images, content, source, user, extra = {} }) {
+export async function createJob({ title, writeUp, details, images, mainImage, content, source, user, extra = {} }) {
   return jobs().insert({
     ...extra,
     title: title?.trim() || "Untitled job",
     writeUp: writeUp || "",
     details: details || {},
     images: images || [],
+    mainImage: mainImage || images?.[0]?.url || null,
     content: content || {},
     approvals: {},
     source: source || "manual",
@@ -203,7 +204,8 @@ export async function scheduleForJob(id, { channelId, dueAt, imageUrls }) {
   const text = defaultPostText(job, channel.service);
   const firstComment = job.content?.[channel.service]?.firstComment;
 
-  const images = (job.images || []).filter((img) => !imageUrls || imageUrls.includes(img.url));
+  // Main building photo first, then the rest in the chosen order.
+  const images = orderedImages(job).filter((img) => !imageUrls || imageUrls.includes(img.url));
   const caseStudyUrl = job.website?.url;
   const comment = firstComment?.replace("{{case_study_url}}", caseStudyUrl || "").trim();
 
@@ -242,7 +244,8 @@ export async function sendCaseStudy(id) {
       ...cs,
       dateCompleted: job.details?.completedOn || undefined,
     },
-    photos: (job.images || []).map((img, i) => ({ url: img.url, alt: i === 0 ? cs.mainImageAlt : img.alt })),
+    // The main building photo becomes the website's mainImage (hero + cards).
+    photos: orderedImages(job).map((img, i) => ({ url: img.url, alt: i === 0 ? cs.mainImageAlt : img.alt })),
     idempotencyKey: `job-${job.id}`,
   });
 

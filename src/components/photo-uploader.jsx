@@ -2,7 +2,18 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, ImagePlus, Loader2, Star, X } from "lucide-react";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { arrayMove, rectSortingStrategy, SortableContext, sortableKeyboardCoordinates, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Building2, GripVertical, ImagePlus, Loader2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -36,11 +47,74 @@ export async function uploadPhoto(file) {
   return body.image;
 }
 
-export function PhotoUploader({ images, onChange, disabled }) {
+function SortablePhoto({ image, index, isMain, onMakeMain, onRemove, disabled }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: image.url,
+    disabled,
+  });
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn("flex flex-col gap-1.5", isDragging && "z-10 opacity-80")}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        aria-label={`Photo ${index + 1}${isMain ? ", main building photo" : ""}. Press space to pick up, arrows to move.`}
+        className={cn(
+          "group relative aspect-square cursor-grab touch-none overflow-hidden rounded-lg bg-gray-100 outline-none focus-visible:ring-[3px] focus-visible:ring-ring active:cursor-grabbing",
+          isMain && "ring-[3px] ring-primary",
+          isDragging && "shadow-paper-lg"
+        )}
+      >
+        <Image src={image.url} alt="" fill unoptimized sizes="200px" className="pointer-events-none object-cover" draggable={false} />
+        <span className="absolute top-2 left-2 rounded-full bg-white/95 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-700 shadow-paper">{index + 1}</span>
+        {isMain && (
+          <span className="absolute right-2 bottom-2 left-2 inline-flex items-center justify-center gap-1 rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-white">
+            <Building2 className="size-3" /> Main photo
+          </span>
+        )}
+        <GripVertical className="absolute top-2 right-2 size-5 rounded bg-white/90 p-0.5 text-gray-500 opacity-0 shadow-paper transition-opacity group-hover:opacity-100" />
+      </div>
+      <div className="flex items-center justify-between gap-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-xs"
+          disabled={disabled || isMain}
+          onClick={onMakeMain}
+          aria-label={`Make photo ${index + 1} the main building photo`}
+        >
+          <Building2 /> {isMain ? "Main" : "Make main"}
+        </Button>
+        <Button type="button" variant="ghost" size="icon-sm" disabled={disabled} onClick={onRemove} aria-label={`Remove photo ${index + 1}`}>
+          <X />
+        </Button>
+      </div>
+    </li>
+  );
+}
+
+/**
+ * Upload, reorder (drag, touch or keyboard) and choose the main building
+ * photo — the case study's hero and card image, and the lead photo on posts.
+ * `mainUrl` defaults to the first photo.
+ */
+export function PhotoUploader({ images, onChange, mainUrl, onMainChange, disabled }) {
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [pending, setPending] = useState(0);
   const [error, setError] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const main = images.some((i) => i.url === mainUrl) ? mainUrl : images[0]?.url;
 
   const addFiles = async (fileList) => {
     setError(null);
@@ -68,11 +142,17 @@ export function PhotoUploader({ images, onChange, disabled }) {
     }
   };
 
-  const move = (i, dir) => {
-    const next = [...images];
-    const [item] = next.splice(i, 1);
-    next.splice(i + dir, 0, item);
+  const onDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    const from = images.findIndex((i) => i.url === active.id);
+    const to = images.findIndex((i) => i.url === over.id);
+    onChange(arrayMove(images, from, to));
+  };
+
+  const remove = (url) => {
+    const next = images.filter((i) => i.url !== url);
     onChange(next);
+    if (url === main && onMainChange) onMainChange(next[0]?.url || null);
   };
 
   const busy = disabled || pending > 0;
@@ -107,7 +187,7 @@ export function PhotoUploader({ images, onChange, disabled }) {
             {pending ? `Uploading ${pending} photo${pending === 1 ? "" : "s"}…` : dragging ? "Drop to upload" : images.length ? "Add more photos" : "Drop job photos here"}
           </span>
           <span className="text-xs text-gray-600">
-            or <span className="font-medium text-primary group-hover:underline">browse</span> — up to {MAX_PHOTOS}, JPG/PNG/WebP. Best shot first.
+            or <span className="font-medium text-primary group-hover:underline">browse</span> — up to {MAX_PHOTOS}, JPG/PNG/WebP.
           </span>
         </span>
       </button>
@@ -126,40 +206,28 @@ export function PhotoUploader({ images, onChange, disabled }) {
       {error && <p role="alert" className="rounded-md bg-destructive-soft px-3 py-2 text-sm text-destructive">{error}</p>}
 
       {images.length > 0 && (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {images.map((img, i) => (
-            <li key={img.url} className="flex flex-col gap-1.5">
-              <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
-                <Image src={img.url} alt={`Photo ${i + 1}`} fill unoptimized sizes="200px" className="object-cover" />
-                {i === 0 && (
-                  <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-xs font-medium text-gray-800 shadow-paper">
-                    <Star className="size-3 fill-marker text-marker" /> Cover
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex">
-                  <Button type="button" variant="ghost" size="icon-sm" disabled={busy || i === 0} onClick={() => move(i, -1)} aria-label="Move earlier">
-                    <ArrowLeft />
-                  </Button>
-                  <Button type="button" variant="ghost" size="icon-sm" disabled={busy || i === images.length - 1} onClick={() => move(i, 1)} aria-label="Move later">
-                    <ArrowRight />
-                  </Button>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={busy}
-                  onClick={() => onChange(images.filter((_, j) => j !== i))}
-                  aria-label={`Remove photo ${i + 1}`}
-                >
-                  <X />
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <>
+          <p className="text-xs text-gray-500">
+            Drag photos to reorder (or focus one and use space + arrow keys). <span className="font-medium text-gray-700">Main photo</span> = the building shot used as the case study hero and on cards.
+          </p>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={images.map((i) => i.url)} strategy={rectSortingStrategy}>
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {images.map((img, i) => (
+                  <SortablePhoto
+                    key={img.url}
+                    image={img}
+                    index={i}
+                    isMain={img.url === main}
+                    disabled={busy}
+                    onMakeMain={() => onMainChange?.(img.url)}
+                    onRemove={() => remove(img.url)}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
+        </>
       )}
     </div>
   );

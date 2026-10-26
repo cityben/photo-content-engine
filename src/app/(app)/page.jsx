@@ -9,7 +9,7 @@ import { StatTile } from "@/components/stat-tile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { needsApproval } from "@/lib/content";
+import { mainImageOf, needsApproval } from "@/lib/content";
 import { latestInsights } from "@/lib/growth";
 import { listJobs } from "@/lib/jobs";
 import { setupStatus } from "@/lib/setup";
@@ -222,8 +222,8 @@ export default async function Dashboard() {
                     className="group flex h-full flex-col overflow-hidden rounded-lg bg-gray-50 outline-none transition-colors hover:bg-gray-100 focus-visible:ring-[3px] focus-visible:ring-ring"
                   >
                     <div className="relative aspect-[4/3] bg-gray-100">
-                      {job.images?.[0] && (
-                        <Image src={job.images[0].url} alt="" fill unoptimized sizes="300px" className="object-cover" />
+                      {mainImageOf(job) && (
+                        <Image src={mainImageOf(job).url} alt="" fill unoptimized sizes="300px" className="object-cover" />
                       )}
                     </div>
                     <div className="flex flex-col gap-1 p-3">

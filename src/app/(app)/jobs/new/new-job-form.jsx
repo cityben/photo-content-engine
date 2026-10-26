@@ -24,6 +24,7 @@ async function post(url, body) {
 export function NewJobForm() {
   const router = useRouter();
   const [images, setImages] = useState([]);
+  const [mainUrl, setMainUrl] = useState(null);
   const [title, setTitle] = useState("");
   const [writeUp, setWriteUp] = useState("");
   const [details, setDetails] = useState({});
@@ -56,6 +57,7 @@ export function NewJobForm() {
         writeUp,
         details: cleanDetails,
         images,
+        mainImage: images.some((i) => i.url === mainUrl) ? mainUrl : images[0]?.url || null,
         source: imported ? "word" : useAi ? "ai" : "manual",
         ...(imported ? { content: { caseStudy: { ...imported, title: imported.title || title } } } : {}),
       });
@@ -98,10 +100,10 @@ export function NewJobForm() {
         <Card>
           <CardHeader>
             <CardTitle>Photos</CardTitle>
-            <CardDescription>Finished work, plant, before/after. The first photo is the cover for the case study and posts.</CardDescription>
+            <CardDescription>Finished work, plant, before/after. Mark the main building photo — it&apos;s the case study hero and card image.</CardDescription>
           </CardHeader>
           <CardContent>
-            <PhotoUploader images={images} onChange={setImages} disabled={busy} />
+            <PhotoUploader images={images} onChange={setImages} mainUrl={mainUrl} onMainChange={setMainUrl} disabled={busy} />
           </CardContent>
         </Card>
 

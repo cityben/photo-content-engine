@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { orderedImages } from "@/lib/content";
 import { serviceInfo } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +59,7 @@ export function SocialComposer({ service, data, onChange, job, social, posts, se
   const hashtags = data?.hashtags || [];
   const full = combine(body, hashtags);
   const over = full.length > info.limit;
-  const images = (job.images || []).filter((img) => selectedImages.includes(img.url));
+  const images = orderedImages(job).filter((img) => selectedImages.includes(img.url));
 
   const set = (key, value) => onChange({ ...data, [key]: value });
 
@@ -122,7 +123,7 @@ export function SocialComposer({ service, data, onChange, job, social, posts, se
             Photos to attach {service === "instagram" && images.length > 1 && <span className="font-normal text-gray-500">— posts as a carousel</span>}
           </legend>
           <div className="flex flex-wrap gap-2">
-            {(job.images || []).map((img, i) => {
+            {orderedImages(job).map((img, i) => {
               const on = selectedImages.includes(img.url);
               return (
                 <button

@@ -14,6 +14,9 @@
     "new-api-key": "node scripts/new-api-key.mjs"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@vercel/blob": "^2.8.2",
     "ai": "^7.0.153",
     "class-variance-authority": "^0.7.1",
