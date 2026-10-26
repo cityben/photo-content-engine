@@ -11,6 +11,7 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 
 import options from "@/data/website-options.json";
+import { asList, normaliseCaseStudy, serviceLinksFor } from "@/lib/case-study-fields";
 import { getStoredImage } from "@/lib/media";
 import { getActiveModel, runCost } from "@/lib/models";
 
@@ -38,26 +39,33 @@ const instagramSchema = z.object({
 });
 
 const caseStudySchema = z.object({
-  title: z.string().describe("Case study title, specific: what was done, where. Under 70 characters."),
-  description: z.string().describe("1-2 sentence lede, under 300 characters. Also used as the meta description fallback."),
-  company: z.enum(options.companies).describe("The division that delivered the work"),
-  sector: z.enum(options.sectors),
-  projectType: z.enum(options.projectTypes),
-  services: z.array(z.string()).describe(`1-4 services delivered, copied EXACTLY from this list: ${ALL_SERVICES.join(" | ")}`),
-  client: z.string().describe("Client or building name if stated in the write-up, else empty"),
-  area: z.string().describe("Town or borough if known, e.g. 'Canary Wharf', else empty"),
-  county: z.string().describe("County if known, e.g. 'London' or 'Kent', else empty"),
-  scopeOfWorks: z.string().describe("Markdown. What was in scope. 2-5 bullet points or a short paragraph."),
-  keyWorks: z.string().describe("Markdown bullets: the main works delivered."),
-  keyChallenges: z.string().describe("Markdown: challenges and how they were solved. Only real ones from the write-up/photos; empty if none known."),
-  deliveryHighlights: z.string().describe("Markdown: delivery highlights (programme, access, live-building working, H&S, handover documents). Empty if none known."),
-  projectOutcome: z.string().describe("Markdown: the outcome for the client. No invented figures."),
-  seoTitle: z.string().describe("SEO <title>, 50-60 characters, primary keyword near the start, ends with '| Acme Ltd' if it fits"),
-  metaDescription: z.string().describe("140-155 characters, includes primary keyword and location, ends with a reason to click"),
-  seoH1: z.string().describe("On-page H1, can differ slightly from the title"),
-  primaryKeyword: z.string().describe("Single primary keyword phrase this page should rank for"),
-  supportingKeywords: z.string().describe("Comma-separated supporting keywords (4-8)"),
-  mainImageAlt: z.string().describe("Alt text for the hero photo"),
+  template: z.enum(["simple", "full"]).describe("'full' when there are real challenges or delivery highlights to tell; otherwise 'simple'"),
+  title: z.string().describe("Job name, specific: what was done, where. Under 70 characters, e.g. 'Rochester Office CAT-B Fit-out'."),
+  description: z.string().describe("Short summary, 1-2 sentences, under 300 characters. Shown on cards and in Google results."),
+  company: z.array(z.enum(options.companies)).describe("Every company that delivered the job"),
+  sector: z.array(z.enum(options.sectors)).describe("Project sector(s) — any that apply"),
+  projectType: z.array(z.enum(options.projectTypes)).describe("Type(s) of project — any that apply"),
+  services: z.array(z.string()).describe(`Services delivered, copied EXACTLY from this list (these decide which service pages show the case study): ${ALL_SERVICES.join(" | ")}`),
+  client: z.string().describe("Client or building name only if stated, else empty"),
+  area: z.string().describe("Town or borough, e.g. 'Rochester', else empty"),
+  county: z.string().describe("Borough / county, e.g. 'Kent' or 'London', else empty"),
+  postcode: z.string().describe("UK postcode only if stated (places the map pin), else empty"),
+  durationWeeks: z.number().int().nullable().describe("Project duration in whole weeks only if stated or clearly derivable from stated dates, else null"),
+  scopeOfWorks: z.string().describe("Markdown. What the job involved: 2-5 bullets or a short paragraph."),
+  keyWorks: z.string().describe("Markdown bullets: the main works carried out (shown on the Simple template)."),
+  keyChallenges: z.string().describe("Markdown: real challenges and how they were solved (Full template). Empty if none known."),
+  deliveryHighlights: z.string().describe("Markdown: delivery highlights — programme, access, live-building working, H&S, handover documents (Full template). Empty if none known."),
+  projectOutcome: z.string().describe("Markdown: the outcome and results for the client. No invented figures."),
+  testimonialQuote: z.string().describe("A client quote only if one is given word for word, else empty"),
+  testimonialAuthor: z.string().describe("Who said it, if given, else empty"),
+  testimonialRole: z.string().describe("Their role / company, if given, else empty"),
+  seoTitle: z.string().describe("Title tag, 50-60 characters, primary keyword near the start, e.g. 'Commercial HVAC & VRF Replacement Maidenhead | Acme Ltd'"),
+  metaDescription: z.string().describe("Meta description, 140-155 characters, includes the primary keyword and location"),
+  seoH1: z.string().describe("Recommended H1, e.g. 'TOR Building, Maidenhead: CAT-B Office HVAC and VRF Replacement'"),
+  primaryKeyword: z.string().describe("Single primary keyword phrase, e.g. 'commercial HVAC replacement Maidenhead'"),
+  supportingKeywords: z.string().describe("4-8 supporting keywords separated with semicolons"),
+  mainImageAlt: z.string().describe("Alt text for the main project photo, e.g. 'Mitsubishi Electric VRF installation at TOR Building in Maidenhead'"),
+  seoNotes: z.string().describe("Internal publishing notes (never shown on the site): facts to confirm before publishing, and anything left out because it wasn't known"),
 });
 
 const keywordSchema = z.object({
@@ -212,7 +220,11 @@ export function cleanContent(content) {
   if (out.linkedin) out.linkedin = { ...out.linkedin, hashtags: [...new Set(out.linkedin.hashtags.map(tag).filter(Boolean))].slice(0, 5) };
   if (out.instagram) out.instagram = { ...out.instagram, hashtags: [...new Set(out.instagram.hashtags.map(tag).filter(Boolean))].slice(0, 30) };
   if (out.caseStudy) {
-    out.caseStudy = { ...out.caseStudy, services: out.caseStudy.services.filter((s) => ALL_SERVICES.includes(s)) };
+    const cs = normaliseCaseStudy({ ...out.caseStudy, services: asList(out.caseStudy.services).filter((s) => ALL_SERVICES.includes(s)) });
+    if (cs.durationWeeks == null) delete cs.durationWeeks;
+    if (!cs.seoServiceLinks) cs.seoServiceLinks = serviceLinksFor(cs.services);
+    cs.testimonialEnabled = Boolean(cs.testimonialQuote);
+    out.caseStudy = cs;
   }
   return out;
 }
@@ -349,4 +361,53 @@ You write short B2B outreach emails from Acme Ltd to businesses that may need ai
     prompt: `${instructions ? `Extra instructions: ${instructions}\n\n` : ""}Data (JSON):\n${JSON.stringify(facts, null, 1)}`,
   });
   return { draft: output, run: { model: modelId, costUsd: await runCost(modelId, usage, providerMetadata) } };
+}
+
+/* --- Word case study → website fields -------------------------------------- */
+
+const extractionSchema = z.object({
+  caseStudy: caseStudySchema,
+  fromDocument: z.array(z.string()).describe("Field names whose content came from the document's own words or facts"),
+  written: z.array(z.string()).describe("Field names you wrote or classified from the document (e.g. SEO fields, summary, services ticked)"),
+  notInDocument: z.array(z.string()).describe("Field names the document doesn't support, left empty — e.g. postcode, durationWeeks, testimonialQuote"),
+  checks: z.array(z.string()).describe("Up to 5 short things a person should confirm before publishing (ambiguous dates, unclear client name, services you were unsure about)"),
+});
+
+/**
+ * Read a Word case study (as plain text with headings) into the website's
+ * fields. The AI reorganises the document into the website's sections and
+ * classifies it against the website's fixed lists; it never adds facts the
+ * document doesn't contain. `known` values win. Returns { result, run }.
+ */
+export async function extractCaseStudyFromDocument({ text, known = {}, model }) {
+  const modelId = model || (await getActiveModel());
+  const knownLines = Object.entries(known)
+    .filter(([, v]) => (Array.isArray(v) ? v.length : v))
+    .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
+    .join("\n");
+  const { output, usage, providerMetadata } = await generateText({
+    model: modelId,
+    system: `${VOICE}
+
+You turn a case study written in Word into the fields of the Acme Ltd website's case study editor. The document may use any headings, order or wording — work out where each piece belongs:
+- Scope of works = what the job involved; Key works delivered = the main works carried out; Key challenges & solutions; Project delivery highlights (programme, access, live-building working, H&S, handover documents); Project outcome & results.
+- Keep the document's facts and good phrasing; tidy it into short markdown paragraphs and bullets. Don't pad. Don't drop technical detail (kit, makes, models, capacities, certificates).
+- Classify company, sector, project type and services only from the fixed lists given. Tick every service genuinely delivered.
+- Area, county, postcode, client, duration and testimonial: only what the document states. Leave empty otherwise.
+- Write the summary and SEO fields from the document's content.
+- Values under "Already known" are correct — use them as given.`,
+    maxOutputTokens: 8000,
+    output: Output.object({ schema: extractionSchema }),
+    prompt: `${knownLines ? `Already known (use as given):\n${knownLines}\n\n` : ""}Website service pages (for choosing services): ${options.serviceGroups.map((g) => `${g.division}: ${g.services.join(", ")}`).join(" / ")}
+
+The document:
+"""
+${String(text).slice(0, 60000)}
+"""`,
+  });
+  const caseStudy = cleanContent({ caseStudy: output.caseStudy }).caseStudy;
+  return {
+    result: { ...output, caseStudy },
+    run: { model: modelId, inputTokens: usage?.inputTokens ?? null, outputTokens: usage?.outputTokens ?? null, costUsd: await runCost(modelId, usage, providerMetadata) },
+  };
 }

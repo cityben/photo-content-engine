@@ -102,7 +102,7 @@ export function NewJobForm({ idea = null }) {
           <CardHeader>
             <CardTitle>Already written it up?</CardTitle>
             <CardDescription>
-              Import a Word case study (.docx). Its sections, client, location and photos fill this form and the website case study — read straight from the document, no AI.
+              Import a Word case study (.docx). AI works out which part of your document belongs in each of the website&apos;s case study fields — scope, key works, challenges, outcome, classification, location, SEO — using only facts in the document, and tells you what&apos;s missing. Its photos are added too. Untick “Read with AI” to map by headings instead.
             </CardDescription>
           </CardHeader>
           <CardContent>

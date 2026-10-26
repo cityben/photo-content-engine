@@ -1,5 +1,5 @@
 {
-  "_note": "Snapshot of company-website lib/projectOptions.js and data/service-catalog.json (26 Oct 2026). Values must match the website exactly.",
+  "_note": "Snapshot of company-website lib/projectOptions.js and data/service-catalog.json (26 Oct 2026). Values must match the website exactly. servicePages: data/service-catalog.json pages (label → URL), for suggested service links.",
   "companies": [
     "Acme Air Conditioning",
     "Acme Mechanical",
@@ -70,7 +70,7 @@
         "Extract Ventilation",
         "Fire & Smoke Dampers",
         "Grilles, Diffusers & Plenums",
-        "Local Exhaust Ventilation \u2014 LEV",
+        "Local Exhaust Ventilation — LEV",
         "MVHR & Heat Recovery",
         "Attenuators",
         "Heater Batteries & Coils",
@@ -163,6 +163,428 @@
         "Backflow & RPZ Testing",
         "Planned Drainage Maintenance"
       ]
+    }
+  ],
+  "servicePages": [
+    {
+      "label": "Commercial Air Conditioning",
+      "href": "/services/air-conditioning"
+    },
+    {
+      "label": "VRF / VRV Systems",
+      "href": "/services/air-conditioning/vrf-vrv-systems"
+    },
+    {
+      "label": "Split & Multi-Split",
+      "href": "/services/air-conditioning/split-systems"
+    },
+    {
+      "label": "DX Systems",
+      "href": "/services/air-conditioning/dx-systems"
+    },
+    {
+      "label": "Hybrid HVRF",
+      "href": "/services/air-conditioning/hybrid-hvrf"
+    },
+    {
+      "label": "CRAC Units",
+      "href": "/services/air-conditioning/crac-units"
+    },
+    {
+      "label": "Critical Cooling",
+      "href": "/services/air-conditioning/critical-cooling"
+    },
+    {
+      "label": "Design Support",
+      "href": "/services/air-conditioning/design-support"
+    },
+    {
+      "label": "Commissioning & Compliance",
+      "href": "/services/air-conditioning/commissioning-compliance"
+    },
+    {
+      "label": "Controls & BMS (Air Conditioning)",
+      "href": "/services/air-conditioning/controls-strategy"
+    },
+    {
+      "label": "Condensate & Pumps",
+      "href": "/services/air-conditioning/condensate-pumps"
+    },
+    {
+      "label": "Indoor Unit Types",
+      "href": "/services/air-conditioning/indoor-unit-types"
+    },
+    {
+      "label": "Ceiling Cassette Air Conditioning",
+      "href": "/services/air-conditioning/indoor-unit-types/ceiling-cassette-air-conditioning"
+    },
+    {
+      "label": "Concealed Ducted Air Conditioning",
+      "href": "/services/air-conditioning/indoor-unit-types/concealed-ducted-air-conditioning"
+    },
+    {
+      "label": "Wall-Mounted Air Conditioning",
+      "href": "/services/air-conditioning/indoor-unit-types/wall-mounted-air-conditioning"
+    },
+    {
+      "label": "Floor-Standing Air Conditioning",
+      "href": "/services/air-conditioning/indoor-unit-types/floor-standing-air-conditioning"
+    },
+    {
+      "label": "Ceiling-Suspended Air Conditioning",
+      "href": "/services/air-conditioning/indoor-unit-types/ceiling-suspended-air-conditioning"
+    },
+    {
+      "label": "Commercial Mechanical Services",
+      "href": "/services/mechanical"
+    },
+    {
+      "label": "Heating & LTHW",
+      "href": "/services/mechanical/lthw-systems"
+    },
+    {
+      "label": "Chilled Water",
+      "href": "/services/mechanical/chilled-water-systems"
+    },
+    {
+      "label": "Ventilation & Ductwork",
+      "href": "/services/mechanical/ventilation-and-ductwork"
+    },
+    {
+      "label": "Air Handling Units",
+      "href": "/services/mechanical/ventilation-and-ductwork/air-handling-units"
+    },
+    {
+      "label": "Ductwork Systems",
+      "href": "/services/mechanical/ventilation-and-ductwork/ductwork-systems"
+    },
+    {
+      "label": "Extract Ventilation",
+      "href": "/services/mechanical/ventilation-and-ductwork/extract-ventilation"
+    },
+    {
+      "label": "Fire & Smoke Dampers",
+      "href": "/services/mechanical/ventilation-and-ductwork/dampers"
+    },
+    {
+      "label": "Grilles, Diffusers & Plenums",
+      "href": "/services/mechanical/ventilation-and-ductwork/grilles-diffusers"
+    },
+    {
+      "label": "Local Exhaust Ventilation — LEV",
+      "href": "/services/mechanical/ventilation-and-ductwork/lev"
+    },
+    {
+      "label": "MVHR & Heat Recovery",
+      "href": "/services/mechanical/ventilation-and-ductwork/mvhr-heat-recovery"
+    },
+    {
+      "label": "Attenuators",
+      "href": "/services/mechanical/ventilation-and-ductwork/attenuators"
+    },
+    {
+      "label": "Heater Batteries & Coils",
+      "href": "/services/mechanical/ventilation-and-ductwork/heater-batteries-coils"
+    },
+    {
+      "label": "Plumbing & Pipefitting",
+      "href": "/services/mechanical/plumbing-pipefitting"
+    },
+    {
+      "label": "Boilers & Plant Rooms",
+      "href": "/services/mechanical/boiler-rooms-plant-rooms"
+    },
+    {
+      "label": "Controls & BMS (Mechanical)",
+      "href": "/services/mechanical/controls-bms-integration"
+    },
+    {
+      "label": "Mechanical & HVAC Controls",
+      "href": "/services/mechanical/mechanical-hvac-controls"
+    },
+    {
+      "label": "BMS Integration",
+      "href": "/services/mechanical/bms-integration"
+    },
+    {
+      "label": "BMS Upgrades & Optimisation",
+      "href": "/services/mechanical/bms-upgrades-optimisation"
+    },
+    {
+      "label": "Mechanical Design Support",
+      "href": "/services/mechanical/mechanical-design-support"
+    },
+    {
+      "label": "Mechanical Design Development",
+      "href": "/services/mechanical/design-development"
+    },
+    {
+      "label": "MEP Coordination & BIM",
+      "href": "/services/mechanical/mep-coordination-bim"
+    },
+    {
+      "label": "Mechanical Drawings & Technical Submittals",
+      "href": "/services/mechanical/drawings-technical-submittals"
+    },
+    {
+      "label": "Testing & Commissioning (Mechanical)",
+      "href": "/services/mechanical/commissioning-and-balancing"
+    },
+    {
+      "label": "Plant Duty",
+      "href": "/services/mechanical/plant-equipment-commissioning"
+    },
+    {
+      "label": "Air Distribution",
+      "href": "/services/mechanical/air-commissioning-balancing"
+    },
+    {
+      "label": "Water Distribution",
+      "href": "/services/mechanical/water-commissioning-balancing"
+    },
+    {
+      "label": "Handover & Compliance",
+      "href": "/services/mechanical/handover-certification-compliance"
+    },
+    {
+      "label": "O&M Manuals",
+      "href": "/services/mechanical/om-manuals-handover"
+    },
+    {
+      "label": "Record Drawings & Assets",
+      "href": "/services/mechanical/record-drawings-asset-information"
+    },
+    {
+      "label": "Certification & Compliance",
+      "href": "/services/mechanical/mechanical-certification-compliance"
+    },
+    {
+      "label": "Big Foot Plant Supports",
+      "href": "/services/mechanical/big-foot-systems"
+    },
+    {
+      "label": "Crane Lifts & Logistics",
+      "href": "/services/mechanical/crane-lifts-logistics"
+    },
+    {
+      "label": "Underfloor Heating",
+      "href": "/services/mechanical/underfloor-heating"
+    },
+    {
+      "label": "Thermal Insulation & Trace Heating",
+      "href": "/services/mechanical/thermal-insulation-trace-heating"
+    },
+    {
+      "label": "Pipework & Plant Insulation",
+      "href": "/services/mechanical/pipework-plant-insulation"
+    },
+    {
+      "label": "Ductwork Insulation",
+      "href": "/services/mechanical/ductwork-insulation"
+    },
+    {
+      "label": "Trace Heating & Frost Protection",
+      "href": "/services/mechanical/trace-heating"
+    },
+    {
+      "label": "Commercial Electrical Services",
+      "href": "/services/electrical"
+    },
+    {
+      "label": "LV Power & Distribution",
+      "href": "/services/electrical/lv-power-distribution"
+    },
+    {
+      "label": "Containment & Cabling",
+      "href": "/services/electrical/containment-cabling-small-power"
+    },
+    {
+      "label": "Commercial Lighting",
+      "href": "/services/electrical/lighting-emergency-lighting"
+    },
+    {
+      "label": "Fire Alarm Systems",
+      "href": "/services/electrical/fire-alarm-systems"
+    },
+    {
+      "label": "Data Cabling",
+      "href": "/services/electrical/data-structured-cabling"
+    },
+    {
+      "label": "Testing & Commissioning (Electrical)",
+      "href": "/services/electrical/testing-commissioning"
+    },
+    {
+      "label": "Electrical Design Support",
+      "href": "/services/electrical/design-support"
+    },
+    {
+      "label": "Electrical Inspection & EICR",
+      "href": "/services/electrical/testing-inspection-eicr"
+    },
+    {
+      "label": "Facilities Management",
+      "href": "/services/facilities"
+    },
+    {
+      "label": "Planned Preventative Maintenance",
+      "href": "/services/facilities/planned-preventative-maintenance"
+    },
+    {
+      "label": "Reactive Maintenance & Call-Outs",
+      "href": "/services/facilities/reactive-maintenance"
+    },
+    {
+      "label": "Validation & Condition Surveys",
+      "href": "/services/facilities/validation-condition-surveys"
+    },
+    {
+      "label": "Repairs & Remedial Works",
+      "href": "/services/facilities/repairs-remedial-works"
+    },
+    {
+      "label": "Replacements & Upgrades",
+      "href": "/services/facilities/replacements-upgrades"
+    },
+    {
+      "label": "Statutory Compliance & Certification",
+      "href": "/services/facilities/statutory-compliance"
+    },
+    {
+      "label": "Asset Registers",
+      "href": "/services/facilities/statutory-certification/asset-registers"
+    },
+    {
+      "label": "Compliance Certification & Documentation",
+      "href": "/services/facilities/statutory-certification/compliance-certification"
+    },
+    {
+      "label": "Audit Support & Landlord Reporting",
+      "href": "/services/facilities/statutory-certification/audit-support"
+    },
+    {
+      "label": "Digital Compliance Records",
+      "href": "/services/facilities/statutory-certification/digital-records"
+    },
+    {
+      "label": "Maintenance Mobilisation & Contract Takeover",
+      "href": "/services/facilities/maintenance-mobilisation"
+    },
+    {
+      "label": "Asset & Lifecycle Management",
+      "href": "/services/facilities/asset-lifecycle-management"
+    },
+    {
+      "label": "Multi-Site Maintenance",
+      "href": "/services/facilities/multi-site-maintenance"
+    },
+    {
+      "label": "Decommissioning & Removal",
+      "href": "/services/facilities/decommissioning-removal"
+    },
+    {
+      "label": "Building Fabric & Minor Works",
+      "href": "/services/facilities/fabric-minor-works"
+    },
+    {
+      "label": "Mechanical & HVAC Maintenance",
+      "href": "/services/facilities/mechanical-hvac-maintenance"
+    },
+    {
+      "label": "Air Conditioning Servicing",
+      "href": "/services/facilities/mechanical-hvac-compliance/air-conditioning-servicing"
+    },
+    {
+      "label": "Ventilation Maintenance & TR19",
+      "href": "/services/facilities/mechanical-hvac-compliance/ventilation-maintenance"
+    },
+    {
+      "label": "Heating Systems",
+      "href": "/services/facilities/mechanical-hvac-compliance/heating-systems"
+    },
+    {
+      "label": "BMS & Controls",
+      "href": "/services/facilities/mechanical-hvac-compliance/bms-controls"
+    },
+    {
+      "label": "Refrigeration",
+      "href": "/services/facilities/mechanical-hvac-compliance/refrigeration"
+    },
+    {
+      "label": "Pressure Systems (PSSR)",
+      "href": "/services/facilities/mechanical-hvac-compliance/pressure-systems"
+    },
+    {
+      "label": "LEV Testing & Certification",
+      "href": "/services/facilities/mechanical-hvac-compliance/lev-testing"
+    },
+    {
+      "label": "Fire Damper Inspection & Testing",
+      "href": "/services/facilities/mechanical-hvac-compliance/fire-damper-inspection"
+    },
+    {
+      "label": "Commissioning (Facilities)",
+      "href": "/services/facilities/mechanical-hvac-compliance/commissioning"
+    },
+    {
+      "label": "Cold Rooms",
+      "href": "/services/facilities/mechanical-hvac-compliance/cold-rooms"
+    },
+    {
+      "label": "Electrical, Fire & Life Safety",
+      "href": "/services/facilities/electrical-life-safety"
+    },
+    {
+      "label": "Power Distribution Monitoring",
+      "href": "/services/facilities/electrical-and-life-safety/power-distribution"
+    },
+    {
+      "label": "General & External Lighting",
+      "href": "/services/facilities/electrical-and-life-safety/general-lighting"
+    },
+    {
+      "label": "Emergency Lighting (Facilities)",
+      "href": "/services/facilities/electrical-and-life-safety/emergency-lighting"
+    },
+    {
+      "label": "Fire Alarm Testing & Servicing",
+      "href": "/services/facilities/electrical-and-life-safety/fire-alarm-testing"
+    },
+    {
+      "label": "Fixed Wire Testing (EICR)",
+      "href": "/services/facilities/electrical-and-life-safety/fixed-wire-testing"
+    },
+    {
+      "label": "Fire Extinguisher Servicing",
+      "href": "/services/facilities/electrical-and-life-safety/fire-extinguisher"
+    },
+    {
+      "label": "Passive Fire Protection",
+      "href": "/services/facilities/electrical-and-life-safety/passive-fire-protection"
+    },
+    {
+      "label": "Water Hygiene & Public Health",
+      "href": "/services/facilities/water-hygiene-public-health"
+    },
+    {
+      "label": "Legionella Risk Assessments",
+      "href": "/services/facilities/water-and-public-health/legionella"
+    },
+    {
+      "label": "Cold Water Storage",
+      "href": "/services/facilities/water-and-public-health/cold-water-storage"
+    },
+    {
+      "label": "Pump Systems & Pipework",
+      "href": "/services/facilities/water-and-public-health/pump-systems"
+    },
+    {
+      "label": "Backflow & RPZ Testing",
+      "href": "/services/facilities/water-and-public-health/backflow-prevention"
+    },
+    {
+      "label": "Planned Drainage Maintenance",
+      "href": "/services/facilities/water-and-public-health/planned-drainage"
     }
   ]
 }

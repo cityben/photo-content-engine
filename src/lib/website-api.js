@@ -16,6 +16,7 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 
+import { normaliseCaseStudy } from "@/lib/case-study-fields";
 import { getStoredImage } from "@/lib/media";
 import { isPrivateAddress } from "@/lib/remote-file";
 import { hintFor, openSecret, sealSecret } from "@/lib/secret-box";
@@ -128,11 +129,11 @@ export async function saveWebsiteConnection({ apiUrl, apiKey, clearKey }, user) 
 
 /** Fields the website's v1 API accepts for a project (lib/apiResources.js PROJECT_WRITABLE). */
 export const CASE_STUDY_FIELDS = [
-  "title", "slug", "description", "company", "sector", "projectType", "services",
-  "client", "area", "county", "dateStarted", "dateCompleted", "durationWeeks",
+  "template", "title", "slug", "description", "company", "sector", "projectType", "services",
+  "client", "area", "county", "postcode", "addToMap", "dateStarted", "dateCompleted", "durationWeeks",
   "writeUp", "scopeOfWorks", "keyWorks", "keyChallenges", "deliveryHighlights", "projectOutcome",
   "testimonialEnabled", "testimonialQuote", "testimonialAuthor", "testimonialRole",
-  "seoTitle", "metaDescription", "seoH1", "primaryKeyword", "supportingKeywords",
+  "seoTitle", "metaDescription", "seoH1", "primaryKeyword", "supportingKeywords", "seoServiceLinks",
   "mainImageAlt", "seoNotes", "mainImage", "images", "previewImages", "published",
 ];
 
@@ -222,7 +223,11 @@ function pick(fields) {
  * Create a draft case study. `photos`: [{ url, alt }] — the first is the hero.
  * `idempotencyKey` stops a retry creating a duplicate.
  */
-export async function createCaseStudyDraft({ caseStudy, photos = [], idempotencyKey }) {
+export async function createCaseStudyDraft({ caseStudy: raw, photos = [], idempotencyKey }) {
+  const caseStudy = normaliseCaseStudy(raw);
+  if (!caseStudy.testimonialEnabled) {
+    for (const k of ["testimonialEnabled", "testimonialQuote", "testimonialAuthor", "testimonialRole"]) delete caseStudy[k];
+  }
   const company = Array.isArray(caseStudy.company) ? caseStudy.company[0] : caseStudy.company;
   const uploaded = [];
   for (const [i, photo] of photos.entries()) {

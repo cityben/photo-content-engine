@@ -5,6 +5,7 @@
 
 import { generateJobContent, SECTIONS } from "@/lib/ai";
 import { cached } from "@/lib/cache";
+import { completeness } from "@/lib/case-study-fields";
 import { APPROVABLE, hasSubstance, orderedImages, SECTION_LABEL } from "@/lib/content";
 import { markPublishedForJob } from "@/lib/ideas";
 import { deleteImage } from "@/lib/media";
@@ -252,6 +253,8 @@ export async function sendCaseStudy(id) {
   if (!job.content?.caseStudy) throw new Error("Write the case study first.");
   if (!job.approvals?.caseStudy) throw new ApprovalError("caseStudy");
   if (job.website?.projectId) throw new Error("This job already has a case study on the website.");
+  const { required } = completeness(job.content.caseStudy);
+  if (required.length) throw new Error(`The website needs: ${required.map((m) => m.label).join(", ")}.`);
 
   const cs = job.content.caseStudy;
   const result = await createCaseStudyDraft({

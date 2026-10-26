@@ -9,8 +9,8 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 | Page | |
 |---|---|
 | **Dashboard** | Setup checklist, what's scheduled this week, 30-day numbers, AI "do next" advice, recent jobs |
-| **Jobs → New job** | Upload up to 10 photos and a short write-up — or import a Word case study (sections, client, location and photos are read straight from the document, no AI). Then draft with AI, or create it without AI and write it yourself |
-| **Job** | Tabs for LinkedIn, Instagram, Case study, Google Business, Keywords, Tips, Photos & brief. Write by hand or with AI, rewrite a section with your own instructions, fill the case study from Word, **approve** each part, then schedule posts (next queue slot or a set UK time) and send the case study to the website as a draft |
+| **Jobs → New job** | Upload up to 10 photos and a short write-up — or import a Word case study: AI reads it into every website case study field (type, company, location, postcode, duration, classification, services, the story sections, testimonial, SEO) using only the document's facts and lists what's missing; untick **Read with AI** to map by headings instead. Photos in the document are added. Then draft with AI, or create it without AI and write it yourself |
+| **Job** | Tabs for LinkedIn, Instagram, Case study, Google Business, Keywords, Tips, Photos & brief. Write by hand or with AI, rewrite a section with your own instructions, fill the case study from Word; the case study form mirrors the website editor's tabs and shows how complete it is, **approve** each part, then schedule posts (next queue slot or a set UK time) and send the case study to the website as a draft |
 | **Content pipeline** | Ideas board: Ideas → Planned → In progress → Published. Add from any keyword gap, keyword idea or AI question with one click, by hand, or let **Suggest ideas** plan 8–12 from your stored search, competitor, Search Console and review data. **Start a job** from an idea and the AI writes towards its target search; sending the case study marks it Published |
 | **Calendar** | Week, month and list views of every scheduled, published and failed post. Pick your publishing days and times per channel, drag approved posts from the "Ready to schedule" tray onto a slot, drag posts to reschedule (with Undo), or auto-fill the next free slots |
 | **Analytics** | Impressions, reactions, engagement per channel, top posts (Buffer); website users, Google clicks, average position, enquiries and visits from social (website reports) |
@@ -86,7 +86,8 @@ src/
     ├── models.js                   Model shortlist, live prices, chosen model, run cost
     ├── jobs.js                     Job lifecycle: create, write, approve, schedule, send to website
     ├── content.js                  Sections and approval rules (shared with the browser)
-    ├── docx-map.js / docx-*.js     Word case study → fields (no AI), browser and server
+    ├── case-study-fields.js        The website's case study fields, completeness check
+    ├── docx-map.js / docx-*.js     Word case study → fields by headings (the no-AI path)
     ├── integration.js              /api/v1 job creation for other systems
     ├── social/                     Buffer GraphQL client, sandbox, provider switch
     ├── website-api.js              Website v1 API: uploads, case studies, reports
