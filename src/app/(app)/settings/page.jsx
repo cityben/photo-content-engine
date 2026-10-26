@@ -1,14 +1,16 @@
 import { CheckCircle2, CircleAlert, Circle } from "lucide-react";
 
-import { ModelPicker, money } from "@/components/model-picker";
+import { ModelPicker } from "@/components/model-picker";
 import { ChannelChip } from "@/components/post-row";
 import { PageHeader } from "@/components/shell/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { gatewayCredits, modelCatalog } from "@/lib/models";
+import { accountBalance, dataforseoConfigured, isSandbox, monthlyBudget, monthSpend } from "@/lib/seo/dataforseo";
 import { setupStatus } from "@/lib/setup";
 import { checkStorage } from "@/lib/store";
 import { listChannels, socialMode, status as socialStatus } from "@/lib/social";
+import { money } from "@/lib/ui-labels";
 import { checkWebsiteConnection, WEBSITE_URL } from "@/lib/website-api";
 
 export const dynamic = "force-dynamic";
@@ -57,13 +59,16 @@ export default async function SettingsPage() {
       console.error(`[settings] ${label} failed:`, error);
       return typeof fallback === "function" ? fallback(error) : fallback;
     });
-  const [buffer, channels, website, catalog, credits, storage] = await Promise.all([
+  const seoOn = dataforseoConfigured();
+  const [buffer, channels, website, catalog, credits, storage, seoSpend, seoBalance] = await Promise.all([
     settle(socialStatus(), (e) => ({ mode: socialMode(), ok: false, error: e.message }), "buffer"),
     settle(listChannels(), [], "channels"),
     settle(checkWebsiteConnection(), (e) => ({ configured: true, ok: false, error: e.message }), "website"),
     settle(modelCatalog(), (e) => ({ active: "", shortlist: [], others: [], usage: { inputTokens: 0, outputTokens: 0 }, error: e.message }), "models"),
     settle(gatewayCredits(), null, "credits"),
     settle(checkStorage(), (e) => ({ ok: false, error: e.message }), "storage"),
+    settle(monthSpend(), null, "dataforseo spend"),
+    seoOn ? settle(accountBalance().then((balance) => ({ balance })), (e) => ({ error: e.message }), "dataforseo") : null,
   ]);
   const scopes = website.me?.scopes || website.me?.key?.scopes;
 
@@ -158,6 +163,31 @@ export default async function SettingsPage() {
             </li>
             <li>
               Add it as <Env>WEBSITE_API_KEY</Env> (starts <Env>cc_live_</Env>). <Env>WEBSITE_API_SECRET</Env> isn&apos;t used by the website and can be removed.
+            </li>
+          </ol>
+        </Integration>
+
+        <Integration
+          title="DataForSEO"
+          state={!seoOn ? "off" : seoBalance?.error ? "error" : "ok"}
+          summary="Competitors, keyword demand, trends, reviews, brand and AI mentions, backlinks and page checks (Search & market, Reputation & authority)."
+        >
+          {seoBalance?.error && <p className="rounded-md bg-destructive-soft p-3 text-destructive">{seoBalance.error}</p>}
+          {seoOn && (
+            <p>
+              {isSandbox() ? "Sandbox — free dummy data. " : ""}This month: <strong>{seoSpend != null ? money(seoSpend) : "—"}</strong> of {money(monthlyBudget())} budget
+              {seoBalance?.balance != null && <> · account balance {money(seoBalance.balance)}</>}
+            </p>
+          )}
+          <ol className="list-decimal space-y-1 pl-5 text-gray-600">
+            <li>
+              Sign up at dataforseo.com and open <strong>API Access</strong> in the dashboard (the API password is not your login password).
+            </li>
+            <li>
+              Add <Env>DATAFORSEO_LOGIN</Env> and <Env>DATAFORSEO_PASSWORD</Env>. Try it first with <Env>DATAFORSEO_SANDBOX=true</Env> (free dummy data).
+            </li>
+            <li>
+              <Env>DATAFORSEO_MONTHLY_BUDGET</Env> (USD, default 20) stops refreshes once this month&apos;s spend reaches it. Pages only read stored results; only the Refresh buttons spend.
             </li>
           </ol>
         </Integration>

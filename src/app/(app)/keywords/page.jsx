@@ -1,209 +1,400 @@
 import Link from "next/link";
-import { Info, Lightbulb } from "lucide-react";
+import { Info } from "lucide-react";
 
+import { LinkTabs, NotConnected, SectionCard } from "@/components/market-cards";
+import { KeywordTable, LinesChart, ListEditor, RefreshButton, TrackButton, TrendsForm } from "@/components/market-ui";
 import { PageHeader } from "@/components/shell/app-shell";
-import { parseDays, RangePicker } from "@/components/range-picker";
+import { parseDays } from "@/components/range-picker";
 import { StatTile } from "@/components/stat-tile";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { growthData } from "@/lib/growth";
-import { listJobs } from "@/lib/jobs";
+import { dataforseoConfigured, isSandbox } from "@/lib/seo/dataforseo";
+import { getMarketSettings, history, latest } from "@/lib/seo/market";
 import { formatNumber } from "@/lib/ui-labels";
+import { cn } from "@/lib/utils";
+
+import { SearchTab } from "./search-tab";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Search & keywords — Content Engine" };
+export const metadata = { title: "Search & market — Content Engine" };
 
-/**
- * Why a query ranks where it does, in plain words, from its own numbers.
- * Search Console gives position, impressions and CTR — not the reasons — so
- * these are rules of thumb, labelled as such.
- */
-function diagnosis(row) {
-  const pos = row.position;
-  const ctr = row.ctr ?? 0;
-  if (pos == null) return "No position data.";
-  if (pos <= 3) {
-    return ctr < 0.05
-      ? "Top 3 but few clicks — the title/description isn't winning the click. Rewrite the snippet."
-      : "Strong. Protect it: keep the page fresh and linked from new case studies.";
-  }
-  if (pos <= 10) {
-    return row.impressions > 100
-      ? "Page 1 but below the fold. A case study on this exact topic, linked to the ranking page, can lift it into the top 3."
-      : "Page 1 with low volume. Fine — focus effort elsewhere.";
-  }
-  if (pos <= 20) {
-    return "Page 2: Google sees relevance but not authority. Quick win — add a case study and internal links using this phrase.";
-  }
-  return "Barely ranking. Needs a dedicated page or a case study built around it.";
+const TABS = [
+  ["search", "Your search"],
+  ["competitors", "Competitors"],
+  ["keywords", "Keyword ideas"],
+  ["trends", "Trends"],
+];
+
+function Delta({ value, invert }) {
+  if (!value) return <span className="text-gray-400">—</span>;
+  const good = invert ? value < 0 : value > 0;
+  return (
+    <span className={cn("tabular-nums", good ? "text-green-700" : "text-destructive")}>
+      {value > 0 ? "+" : ""}
+      {formatNumber(value)}
+    </span>
+  );
 }
 
-function QuickWinBadge({ row }) {
-  if (row.position > 3.5 && row.position <= 20 && row.impressions >= 50) return <Badge>Quick win</Badge>;
-  return null;
-}
+async function CompetitorsTab({ selected }) {
+  const settings = await getMarketSettings();
+  const [overview, overviewHistory, discovered, leaders] = await Promise.all([
+    latest("overview"),
+    history("overview"),
+    latest("competitors"),
+    latest("leaders"),
+  ]);
+  const focus = selected && settings.competitors.includes(selected) ? selected : settings.competitors[0];
+  const [gap, theirs] = focus ? await Promise.all([latest("gap", focus), latest("ranked", focus)]) : [null, null];
 
-export default async function KeywordsPage({ searchParams }) {
-  const days = parseDays((await searchParams)?.days);
-  const [data, jobs] = await Promise.all([growthData({ days }), listJobs()]);
-  const q = data.website.queries;
-  const rows = q?.rows || [];
-  const wins = rows.filter((r) => r.position > 3.5 && r.position <= 20 && r.impressions >= 50).sort((a, b) => b.impressions - a.impressions);
-  const aiKeywords = jobs.flatMap((j) => (j.content?.seo?.keywords || []).map((k) => ({ ...k, jobId: j.id, jobTitle: j.title }))).slice(0, 30);
+  const rows = [...(overview?.data || [])].sort((a, b) => b.traffic - a.traffic);
+  const ours = rows.find((r) => r.you);
+  const rank = ours ? rows.indexOf(ours) + 1 : null;
+  const chartDomains = rows.slice(0, 8).map((r) => r.domain);
+  const chart = overviewHistory.map((snap) => ({
+    date: new Date(snap.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+    ...Object.fromEntries(snap.data.filter((r) => chartDomains.includes(r.domain)).map((r) => [r.domain, r.traffic])),
+  }));
+  const gapRows = gap?.data || [];
+  const gapWins = gapRows.filter((r) => ["commercial", "transactional"].includes(r.intent) && (r.difficulty ?? 0) < 40);
 
   return (
     <>
-      <PageHeader
-        title="Search & keywords"
-        description="What people type into Google to find you, where you rank, and where a new case study would move the needle."
-        actions={data.website.configured && <RangePicker days={days} basePath="/keywords" />}
-      />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatTile label="Your est. monthly traffic" value={ours ? formatNumber(ours.traffic) : "—"} hint="Organic, from Google UK" />
+        <StatTile label="Rank among tracked" value={rank ? `${rank} of ${rows.length}` : "—"} hint="By organic traffic" />
+        <StatTile label="Your top-10 keywords" value={ours ? formatNumber(ours.top10) : "—"} hint={ours ? `${formatNumber(ours.top3)} in the top 3` : undefined} />
+        <StatTile label={focus ? `Gap vs ${focus}` : "Keyword gap"} value={gap ? formatNumber(gapRows.length) : "—"} hint={gap ? `${gapWins.length} easy buying keywords` : "Refresh a competitor below"} />
+      </div>
 
-      {!data.website.configured || data.website.error ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Connect real search data</CardTitle>
-            <CardDescription>
-              {data.website.error
-                ? `The website didn't return search data: ${data.website.error}`
-                : "Your website already keeps a copy of Google Search Console. Give this tool a website API key with analytics:read to use it — then rankings here are real, not guesses."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" asChild>
-              <Link href="/settings">How to connect</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatTile label="Search queries" value={formatNumber(q.totalQueries)} hint={`Last ${days} days`} />
-            {(q.bands || []).slice(0, 3).map((b) => (
-              <StatTile key={b.key} label={b.key} value={formatNumber(b.queries)} hint="queries" />
-            ))}
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lightbulb className="size-4 text-primary" /> Quick wins
-              </CardTitle>
-              <CardDescription>
-                Positions 4–20 with real impressions. Google already links you to these searches; a focused case study and internal links can push them onto page 1.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {wins.length === 0 ? (
-                <p className="rounded-lg bg-gray-50 p-6 text-sm text-gray-600">No quick wins in this range.</p>
-              ) : (
-                <ul className="grid gap-3 md:grid-cols-2">
-                  {wins.slice(0, 8).map((r) => (
-                    <li key={r.key} className="flex flex-col gap-1.5 rounded-lg bg-gray-50 p-4">
-                      <p className="font-medium text-gray-900">{r.key}</p>
-                      <p className="text-xs tabular-nums text-gray-600">
-                        Position {r.position.toFixed(1)} · {formatNumber(r.impressions)} impressions · {formatNumber(r.clicks)} clicks
-                      </p>
-                      <p className="text-sm text-gray-600">{diagnosis(r)}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>All queries</CardTitle>
-              <CardDescription className="flex items-start gap-1.5">
-                <Info className="mt-0.5 size-3.5 shrink-0" />
-                From Google Search Console via your website. &quot;Why&quot; is a rule of thumb from position, impressions and click rate — Google doesn&apos;t publish its reasons.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Query</TableHead>
-                    <TableHead className="text-right">Position</TableHead>
-                    <TableHead className="text-right">Change</TableHead>
-                    <TableHead className="text-right">Impressions</TableHead>
-                    <TableHead className="text-right">Clicks</TableHead>
-                    <TableHead className="text-right">CTR</TableHead>
-                    <TableHead className="hidden lg:table-cell">Why / what to do</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.slice(0, 100).map((r) => (
-                    <TableRow key={r.key}>
-                      <TableCell className="font-medium text-gray-900">
-                        <span className="flex flex-wrap items-center gap-1.5">
-                          {r.key} <QuickWinBadge row={r} />
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{r.position != null ? r.position.toFixed(1) : "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {r.positionChange == null ? (
-                          "—"
-                        ) : (
-                          <span className={r.positionChange > 0 ? "text-green-700" : r.positionChange < 0 ? "text-destructive" : ""}>
-                            {r.positionChange > 0 ? "▲" : r.positionChange < 0 ? "▼" : ""} {Math.abs(r.positionChange).toFixed(1)}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNumber(r.impressions)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNumber(r.clicks)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{r.ctr != null ? `${(r.ctr * 100).toFixed(1)}%` : "—"}</TableCell>
-                      <TableCell className="hidden max-w-sm text-xs leading-5 lg:table-cell">{diagnosis(r)}</TableCell>
+      <SectionCard
+        title="Who you're up against"
+        description="You and the competitors you track, side by side. Each refresh adds a point to the history, so you can see who is growing."
+        snap={overview}
+        action={<RefreshButton section="overview" label="Refresh visibility" variant="default" />}
+      >
+        <div className="flex flex-col gap-6">
+          <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
+            <div className="min-w-0">
+              {rows.length ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Domain</TableHead>
+                      <TableHead className="text-right">Traffic/mo</TableHead>
+                      <TableHead className="text-right">Keywords</TableHead>
+                      <TableHead className="text-right">Top 3</TableHead>
+                      <TableHead className="hidden text-right md:table-cell">Top 10</TableHead>
+                      <TableHead className="hidden text-right lg:table-cell">New</TableHead>
+                      <TableHead className="hidden text-right lg:table-cell">Lost</TableHead>
+                      <TableHead />
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </>
-      )}
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((r) => (
+                      <TableRow key={r.domain} className={r.you ? "bg-primary-soft/50" : undefined}>
+                        <TableCell className="font-medium text-gray-900">
+                          <span className="flex items-center gap-1.5">
+                            {r.domain} {r.you && <Badge>You</Badge>}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{formatNumber(r.traffic)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{formatNumber(r.keywords)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{formatNumber(r.top3)}</TableCell>
+                        <TableCell className="hidden text-right tabular-nums md:table-cell">{formatNumber(r.top10)}</TableCell>
+                        <TableCell className="hidden text-right lg:table-cell">
+                          <Delta value={r.newKeywords} />
+                        </TableCell>
+                        <TableCell className="hidden text-right lg:table-cell">
+                          <Delta value={-r.lostKeywords} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {!r.you && (
+                            <Link href={`/keywords?tab=competitors&c=${encodeURIComponent(r.domain)}#gap`} className="text-xs font-medium text-primary hover:underline">
+                              Gap →
+                            </Link>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="rounded-lg bg-gray-50 p-6 text-sm text-gray-600">
+                  {settings.competitors.length ? "Press Refresh visibility to compare." : "Find competitors below first, or add the ones you know."}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2 rounded-lg bg-gray-50 p-4">
+              <p className="text-sm font-semibold text-gray-900">Tracked competitors</p>
+              <p className="text-xs text-gray-600">Up to 15. These are compared above and used for gaps.</p>
+              <ListEditor key={settings.competitors.join("|")} field="competitors" values={settings.competitors} placeholder="competitor.co.uk" label="Add a competitor domain" />
+            </div>
+          </div>
+          {chart.length > 1 && (
+            <div>
+              <p className="mb-2 text-sm font-semibold text-gray-900">Estimated organic traffic over time</p>
+              <LinesChart data={chart} series={chartDomains} />
+            </div>
+          )}
+        </div>
+      </SectionCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Keywords suggested for your jobs</CardTitle>
-          <CardDescription>From each job&apos;s AI write-up. &quot;Search Console&quot; means backed by your real data; &quot;Estimate&quot; means the AI&apos;s judgement.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {aiKeywords.length === 0 ? (
-            <p className="rounded-lg bg-gray-50 p-6 text-sm text-gray-600">Create a job to get keyword suggestions.</p>
-          ) : (
+      <div className="grid gap-6 xl:grid-cols-2">
+        <SectionCard
+          title="Competitors Google sees"
+          description="Domains that rank for the same keywords as you, by overlap. Track the ones that matter."
+          snap={discovered}
+          action={<RefreshButton section="competitors" label="Find competitors" />}
+        >
+          {discovered?.data?.length ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Keyword</TableHead>
-                  <TableHead>Evidence</TableHead>
-                  <TableHead className="hidden md:table-cell">Why</TableHead>
-                  <TableHead>Job</TableHead>
+                  <TableHead>Domain</TableHead>
+                  <TableHead className="text-right">Shared keywords</TableHead>
+                  <TableHead className="text-right">Their traffic</TableHead>
+                  <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {aiKeywords.map((k) => (
-                  <TableRow key={`${k.jobId}-${k.keyword}`}>
-                    <TableCell className="font-medium text-gray-900">{k.keyword}</TableCell>
-                    <TableCell>
-                      <Badge variant={k.evidence === "search-console" ? "success" : "secondary"}>{k.evidence === "search-console" ? "Search Console" : "Estimate"}</Badge>
-                    </TableCell>
-                    <TableCell className="hidden max-w-md text-xs leading-5 md:table-cell">{k.why}</TableCell>
-                    <TableCell>
-                      <Link href={`/jobs/${k.jobId}`} className="text-xs font-medium text-primary hover:underline">
-                        {k.jobTitle}
-                      </Link>
+                {discovered.data.slice(0, 20).map((r) => (
+                  <TableRow key={r.domain}>
+                    <TableCell className="font-medium text-gray-900">{r.domain}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatNumber(r.sharedKeywords)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatNumber(r.traffic)}</TableCell>
+                    <TableCell className="text-right">
+                      <TrackButton domain={r.domain} tracked={settings.competitors} />
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          ) : (
+            <p className="rounded-lg bg-gray-50 p-6 text-sm text-gray-600">Press Find competitors. If you track none yet, the top 6 are tracked for you.</p>
           )}
-        </CardContent>
-      </Card>
+        </SectionCard>
+
+        <SectionCard
+          title="Niche leaders"
+          description="Who owns Google for your service keywords — including big players who don't overlap with you yet. Uses your seed keywords."
+          snap={leaders}
+          action={<RefreshButton section="leaders" label="Refresh leaders" />}
+        >
+          {leaders?.data?.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Domain</TableHead>
+                  <TableHead className="text-right">Avg position</TableHead>
+                  <TableHead className="text-right">Keywords</TableHead>
+                  <TableHead className="text-right">Visibility</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {leaders.data.slice(0, 20).map((r) => (
+                  <TableRow key={r.domain} className={r.you ? "bg-primary-soft/50" : undefined}>
+                    <TableCell className="font-medium text-gray-900">
+                      <span className="flex items-center gap-1.5">
+                        {r.domain} {r.you && <Badge>You</Badge>}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{r.avgPosition ?? "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatNumber(r.keywordsCount)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{r.visibility != null ? `${r.visibility}%` : "—"}</TableCell>
+                    <TableCell className="text-right">{!r.you && <TrackButton domain={r.domain} tracked={settings.competitors} />}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="rounded-lg bg-gray-50 p-6 text-sm text-gray-600">Press Refresh leaders.</p>
+          )}
+        </SectionCard>
+      </div>
+
+      {settings.competitors.length > 0 && (
+        <div id="gap" className="flex scroll-mt-6 flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">Competitor:</span>
+            {settings.competitors.map((d) => (
+              <Link
+                key={d}
+                href={`/keywords?tab=competitors&c=${encodeURIComponent(d)}#gap`}
+                aria-current={d === focus ? "true" : undefined}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring",
+                  d === focus ? "bg-primary text-white" : "bg-white text-gray-700 shadow-paper hover:text-gray-900"
+                )}
+              >
+                {d}
+              </Link>
+            ))}
+          </div>
+
+          <SectionCard
+            title={`Keyword gap: ${focus}`}
+            description="Searches they rank for and you don't. Buying intent and low difficulty first — each one is a case study or service page waiting to be written."
+            snap={gap}
+            action={<RefreshButton section="gap" domain={focus} label="Refresh gap" variant="default" />}
+          >
+            <KeywordTable
+              rows={gapRows}
+              extra={[
+                { key: "theirPosition", label: "Their position", kind: "position", sort: "theirPosition", className: "text-right" },
+                { key: "theirUrl", label: "Their page", kind: "url", className: "hidden xl:table-cell" },
+              ]}
+              emptyText="Press Refresh gap to see what they rank for that you don't."
+            />
+          </SectionCard>
+
+          <SectionCard
+            title={`What ${focus} ranks for`}
+            description="Their best keywords by traffic, and which page earns it. Arrows show movement since Google's last update."
+            snap={theirs}
+            action={<RefreshButton section="ranked" domain={focus} label="Refresh their keywords" />}
+          >
+            <KeywordTable
+              rows={theirs?.data || []}
+              initialSort="traffic"
+              extra={[
+                { key: "position", label: "Position", kind: "position", sort: "position", className: "text-right" },
+                { key: "traffic", label: "Traffic", kind: "number", sort: "traffic", className: "text-right" },
+                { key: "url", label: "Page", kind: "url", className: "hidden xl:table-cell" },
+              ]}
+              emptyText="Press Refresh their keywords."
+            />
+          </SectionCard>
+        </div>
+      )}
+    </>
+  );
+}
+
+async function KeywordsTab() {
+  const settings = await getMarketSettings();
+  const [ideas, ours] = await Promise.all([latest("ideas"), latest("ranked", settings.domain)]);
+  const rows = ideas?.data || [];
+  const rising = rows.filter((r) => (r.trend ?? 0) > 20 && r.volume >= 50).length;
+  const unranked = rows.filter((r) => !r.ourPosition && ["commercial", "transactional"].includes(r.intent)).length;
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatTile label="Keyword ideas" value={ideas ? formatNumber(rows.length) : "—"} hint="Around your services, UK" />
+        <StatTile label="Rising fast" value={ideas ? formatNumber(rising) : "—"} hint="+20% year on year" />
+        <StatTile label="Buying keywords you miss" value={ideas ? formatNumber(unranked) : "—"} hint="Not in your top 100" />
+        <StatTile label="You rank for" value={ours ? formatNumber(ours.data.length) : "—"} hint="Top keywords tracked" />
+      </div>
+
+      <SectionCard
+        title="What your market is searching for"
+        description="Demand around your services in the UK — not just searches you already appear for. Score weighs volume, value (CPC), buying intent, difficulty and momentum."
+        snap={ideas}
+        action={<RefreshButton section="ideas" label="Refresh ideas" variant="default" />}
+      >
+        <KeywordTable
+          rows={rows}
+          extra={[{ key: "ourPosition", label: "You", kind: "position", sort: "ourPosition", className: "text-right" }]}
+          emptyText="Press Refresh ideas. Refresh your own keywords first and each idea shows where you already rank."
+        />
+      </SectionCard>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_24rem]">
+        <SectionCard
+          title={`What ${settings.domain} ranks for`}
+          description="Your own keywords by estimated traffic. Positions 4–20 are the cheapest wins."
+          snap={ours}
+          action={<RefreshButton section="ranked" domain={settings.domain} label="Refresh yours" />}
+        >
+          <KeywordTable
+            rows={ours?.data || []}
+            initialSort="traffic"
+            extra={[
+              { key: "position", label: "Position", kind: "position", sort: "position", className: "text-right" },
+              { key: "url", label: "Page", kind: "url", className: "hidden xl:table-cell" },
+            ]}
+            emptyText="Press Refresh yours."
+          />
+        </SectionCard>
+        <Card>
+          <CardHeader>
+            <CardTitle>Seed keywords</CardTitle>
+            <CardDescription>The services ideas and niche leaders grow from. Keep them to what you sell.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ListEditor key={settings.seeds.join("|")} field="seeds" values={settings.seeds} placeholder="e.g. daikin vrv installer" label="Add a seed keyword" max={50} />
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  );
+}
+
+async function TrendsTab() {
+  // Trends snapshots are keyed by keyword list; show the newest of any.
+  const snap = await latest("trends", null);
+  const keywords = snap?.data?.keywords || ["air conditioning installation", "heat pump installation", "commercial electrician"];
+  const points = (snap?.data?.points || []).map((p) => ({ ...p, date: new Date(p.date).toLocaleDateString("en-GB", { month: "short", year: "2-digit" }) }));
+
+  return (
+    <SectionCard
+      title="Seasonality and momentum"
+      description="Google Trends interest over five years in the UK (100 = the peak). Plan content a month before the curve rises — air conditioning peaks in summer, heating in autumn."
+      snap={snap}
+    >
+      <div className="flex flex-col gap-6">
+        <TrendsForm initial={keywords} />
+        {points.length ? (
+          <>
+            <LinesChart data={points} series={snap.data.keywords} height={300} />
+            {snap.data.averages?.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {snap.data.keywords.map((k, i) => (
+                  <span key={k} className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                    {k}: average interest <span className="font-semibold tabular-nums">{snap.data.averages[i] ?? "—"}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="rounded-lg bg-gray-50 p-6 text-sm text-gray-600">Pick up to five keywords and press Compare.</p>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
+
+export default async function KeywordsPage({ searchParams }) {
+  const params = (await searchParams) || {};
+  const tab = TABS.some(([id]) => id === params.tab) ? params.tab : "search";
+  const days = parseDays(params.days);
+  const connected = dataforseoConfigured();
+
+  return (
+    <>
+      <PageHeader
+        title="Search & market"
+        description="Where you rank, who you're up against, and what your market is searching for — so every case study targets demand that exists."
+        actions={connected && isSandbox() && <Badge variant="secondary">DataForSEO sandbox · dummy data</Badge>}
+      />
+      <LinkTabs base="/keywords" tabs={TABS} active={tab} label="Search & market sections" />
+
+      {tab === "search" && <SearchTab days={days} />}
+      {tab !== "search" && !connected && <NotConnected />}
+      {tab === "competitors" && connected && <CompetitorsTab selected={params.c} />}
+      {tab === "keywords" && connected && <KeywordsTab />}
+      {tab === "trends" && connected && <TrendsTab />}
+
+      {tab !== "search" && connected && (
+        <p className="flex items-start gap-1.5 text-xs text-gray-500">
+          <Info className="mt-0.5 size-3.5 shrink-0" />
+          Market data is from DataForSEO (Google UK). Traffic is an estimate from rankings and search volumes, good for comparing domains — not a replacement for your own analytics.
+        </p>
+      )}
     </>
   );
 }

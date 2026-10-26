@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { Recommendations, SeoPanel } from "@/components/insight-panels";
 import { JobDetailsFields } from "@/components/job-details-fields";
-import { money } from "@/components/model-picker";
+import { money } from "@/lib/ui-labels";
 import { PhotoUploader } from "@/components/photo-uploader";
 import { useCopy } from "@/components/use-copy";
 import {

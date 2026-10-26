@@ -10,6 +10,7 @@ import {
   Lightbulb,
   Search,
   Settings,
+  ShieldCheck,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -19,7 +20,8 @@ export const NAV = [
   { href: "/jobs", label: "Jobs", icon: FolderOpen },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/keywords", label: "Search & keywords", icon: Search },
+  { href: "/keywords", label: "Search & market", icon: Search },
+  { href: "/reputation", label: "Reputation & authority", icon: ShieldCheck },
   { href: "/insights", label: "Growth insights", icon: Lightbulb },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

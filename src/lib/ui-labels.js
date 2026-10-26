@@ -23,3 +23,10 @@ export function formatNumber(value, unit) {
   if (unit === "percentage") return `${Number(value).toFixed(1)}%`;
   return new Intl.NumberFormat("en-GB", { notation: value >= 10000 ? "compact" : "standard" }).format(value);
 }
+
+/** US dollars (AI Gateway and DataForSEO bill in USD); tiny amounts keep 3 decimals. */
+export function money(value, digits = 2) {
+  if (value == null || !Number.isFinite(value)) return "—";
+  if (value > 0 && value < 0.01) return `$${value.toFixed(3)}`;
+  return `$${value.toFixed(digits)}`;
+}

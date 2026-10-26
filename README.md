@@ -11,9 +11,10 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 | **Dashboard** | Setup checklist, what's scheduled this week, 30-day numbers, AI "do next" advice, recent jobs |
 | **Jobs → New job** | Upload up to 10 photos and a short write-up — or import a Word case study (sections, client, location and photos are read straight from the document, no AI). Then draft with AI, or create it without AI and write it yourself |
 | **Job** | Tabs for LinkedIn, Instagram, Case study, Google Business, Keywords, Tips, Photos & brief. Write by hand or with AI, rewrite a section with your own instructions, fill the case study from Word, **approve** each part, then schedule posts (next queue slot or a set UK time) and send the case study to the website as a draft |
-| **Calendar** | Month/week view of every scheduled, published and failed post. Click to edit text, reschedule or delete. Agenda list on phones |
+| **Calendar** | Week, month and list views of every scheduled, published and failed post. Pick your publishing days and times per channel, drag approved posts from the "Ready to schedule" tray onto a slot, drag posts to reschedule (with Undo), or auto-fill the next free slots |
 | **Analytics** | Impressions, reactions, engagement per channel, top posts (Buffer); website users, Google clicks, average position, enquiries and visits from social (website reports) |
-| **Search & keywords** | Your real Google Search Console queries with position, change, CTR, a plain-English "why" and quick wins (positions 4–20 with impressions) |
+| **Search & market** | *Your search*: real Search Console queries with position, change, CTR, a plain-English "why" and quick wins. *Competitors*: who Google sees as your competitors, niche leaders for your service keywords, traffic and visibility side by side over time, keyword gaps (what they rank for and you don't) and each competitor's best pages. *Keyword ideas*: UK demand around your services scored by volume, value, buying intent, difficulty and momentum. *Trends*: five-year Google Trends seasonality |
+| **Reputation & authority** | Google Business profile vs local rivals, Google and Trustpilot reviews (unanswered low ratings flagged), brand mentions across the web with tone, whether Google AI Overviews and ChatGPT cite you vs competitors, backlink authority, link prospects (sites linking to two competitors but not you) and page checks for your key pages |
 | **Growth insights** | AI reads all of the above and gives a summary, a prioritised to-do list and content ideas |
 | **Settings** | AI model picker (scores, live prices, cost per job, gateway credit) and live connection checks for Buffer, the website, storage and sign-in |
 
@@ -23,6 +24,7 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 - **Buffer** — Buffer's GraphQL API (`api.buffer.com`). Create, edit, delete and list posts; per-post and aggregated metrics (Buffer marks metrics experimental and refreshes them daily).
 - **Website** — the Acme Ltd website's v1 API: photo upload, case study drafts (`published: false`), and its own copy of Google Search Console, GA4 and Business Profile data.
 - **Keywords** — real Search Console data when the website is connected. Without it, keyword suggestions are clearly marked "Estimate".
+- **DataForSEO** — market, competitor and reputation data (Google UK). Pay per request: pages read stored snapshots for free and only a **Refresh** spends, capped by `DATAFORSEO_MONTHLY_BUDGET`. See [docs/SETUP.md](docs/SETUP.md#dataforseo-market-and-reputation-data).
 
 ### Approval, and manual as the backup
 
@@ -72,8 +74,8 @@ src/
 ├── app/
 │   ├── login/                      Sign-in page
 │   ├── (app)/                      Signed-in pages: dashboard, jobs, calendar,
-│   │                               analytics, keywords, insights, settings
-│   └── api/                        jobs, uploads, media, posts, channels, insights, auth
+│   │                               analytics, keywords, reputation, insights, settings
+│   └── api/                        jobs, uploads, media, posts, channels, insights, market, auth
 ├── components/                     App shell, uploader, post rows, ui/ (shadcn, paper style)
 ├── data/website-options.json       Website sectors, services, divisions (snapshot)
 └── lib/
@@ -85,11 +87,13 @@ src/
     ├── integration.js              /api/v1 job creation for other systems
     ├── social/                     Buffer GraphQL client, sandbox, provider switch
     ├── website-api.js              Website v1 API: uploads, case studies, reports
+    ├── seo/                        DataForSEO client (budget guard), market + reputation snapshots
+    ├── schedule.js / autofill.js   Publishing days and times, calendar auto-fill
     ├── growth.js                   Analytics + insights data
     ├── store/                      MongoDB, or in-memory for local dev
     ├── media.js                    Vercel Blob or local photo storage
     └── time.js                     UK-time scheduling helpers
-tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords
+tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market
 ```
 
 ### Updating website options
@@ -114,7 +118,8 @@ tests/                              Jest: Buffer, website, sandbox, time, AI, mo
 | ✅ | Photo + write-up → LinkedIn, Instagram, case study, Google Business, keywords, tips |
 | ✅ | Buffer scheduling, calendar edit/delete, analytics, sandbox |
 | ✅ | Website case study drafts, Search Console keywords, growth insights |
-| Next | Drag-and-drop rescheduling on the calendar; Google Business posting through Buffer |
-| Later | Leads finder and outreach (Phase 3) |
+| ✅ | Calendar publishing days, drag to schedule/reschedule, auto-fill |
+| ✅ | Competitors, keyword gaps, ideas, trends, reviews, mentions, AI visibility, backlinks, page checks (DataForSEO) |
+| Next | Content pipeline (ideas board), monthly report with PDF/CSV export, leads and outreach |
 
 Private — Acme Ltd only.

@@ -10,6 +10,7 @@ Everything is optional except sign-in: without keys the app runs in **sandbox mo
 | Vercel Blob | `BLOB_READ_WRITE_TOKEN` | Public photo links for Buffer/Instagram |
 | Buffer | `BUFFER_API_KEY`, `ENABLE_BUFFER_POSTING` | Real scheduling, calendar and stats |
 | Website | `WEBSITE_API_KEY` | Case study drafts, Search Console keywords, traffic |
+| DataForSEO | `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD` | Competitors, keyword demand, trends, reviews, mentions, AI visibility, backlinks, page checks |
 
 ## Local development
 
@@ -84,6 +85,21 @@ Instagram needs at least one photo per post (several become a carousel). Links g
 2. Copy the `cc_live_…` key (shown once) → `WEBSITE_API_KEY`. `WEBSITE_API_SECRET` is not used by the website and can be deleted.
 
 Then on a job's **Case study** tab, **Send as draft** uploads the photos to the website and creates the case study unpublished. Review and publish it in the website admin. The **Search & keywords** and **Analytics** pages switch to real Search Console and GA4 numbers, and new jobs' keyword advice uses them.
+
+## DataForSEO (market and reputation data)
+
+1. Sign up at [dataforseo.com](https://dataforseo.com) and add credit (pay as you go; $50 lasts a long time at this scale).
+2. Dashboard → **API Access**: copy the API login and API password (not your account password) into `DATAFORSEO_LOGIN` and `DATAFORSEO_PASSWORD`.
+3. Optional: `DATAFORSEO_SANDBOX=true` to try every screen with free dummy data first.
+4. `DATAFORSEO_MONTHLY_BUDGET` (USD, default 20) — refreshes stop once this month's spend reaches it. Settings shows spend and account balance.
+
+Nothing is fetched automatically. Each **Refresh** button costs a few cents (AI answers ≈ $0.10 per domain, the rest ≈ $0.01–0.05) and stores a snapshot; pages read the latest snapshot for free, and repeated snapshots build history (e.g. competitor traffic over time). Reviews are queued by DataForSEO and arrive 1–5 minutes later — the page checks for you.
+
+What each page uses:
+
+- **Search & market → Competitors**: Labs competitors_domain, domain_rank_overview, serp_competitors, domain_intersection (keyword gap), ranked_keywords.
+- **Search & market → Keyword ideas / Trends**: Labs keyword_ideas (with your seed keywords) and Google Trends explore (UK, 5 years).
+- **Reputation & authority**: Business Data (Google Business profile, Google and Trustpilot reviews), Content Analysis (brand mentions and tone), AI Optimization LLM mentions (Google AI Overviews UK; ChatGPT data is US-only), Backlinks summary and domain intersection (link prospects), OnPage instant pages (page checks).
 
 ## Other systems (API keys)
 

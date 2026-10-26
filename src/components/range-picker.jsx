@@ -2,13 +2,13 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
-export function RangePicker({ days, basePath }) {
+export function RangePicker({ days, basePath, extra }) {
   return (
     <div className="inline-flex gap-1 rounded-lg bg-gray-100 p-1" role="group" aria-label="Date range">
       {[7, 30, 90].map((d) => (
         <Link
           key={d}
-          href={`${basePath}?days=${d}`}
+          href={`${basePath}?days=${d}${extra ? `&${extra}` : ""}`}
           aria-current={days === d ? "true" : undefined}
           className={cn(
             "rounded-md px-3 py-1 text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring",

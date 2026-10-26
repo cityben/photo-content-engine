@@ -10,13 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/client-api";
+import { money } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 
-export function money(value, digits = 2) {
-  if (value == null || !Number.isFinite(value)) return "—";
-  if (value > 0 && value < 0.01) return `$${value.toFixed(3)}`;
-  return `$${value.toFixed(digits)}`;
-}
 
 function Score({ value }) {
   return (
