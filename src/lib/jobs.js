@@ -5,6 +5,7 @@
 
 import { generateJobContent, SECTIONS } from "@/lib/ai";
 import { cached } from "@/lib/cache";
+import { APPROVABLE, hasSubstance, SECTION_LABEL } from "@/lib/content";
 import { deleteImage } from "@/lib/media";
 import { createPost, listChannels, socialMode } from "@/lib/social";
 import { collection } from "@/lib/store";
@@ -20,13 +21,57 @@ export async function getJob(id) {
   return jobs().get(id);
 }
 
-export async function createJob({ title, writeUp, details, images, user }) {
+export { APPROVABLE, hasSubstance, needsApproval } from "@/lib/content";
+
+/* --- Approval ---------------------------------------------------------------
+   Nothing reaches Buffer or the website until a person approves that exact
+   section. Any change to an approved section — by hand or by AI — clears its
+   approval, and scheduling uses the saved, approved text, never text sent
+   from the browser. */
+
+export class ApprovalError extends Error {
+  constructor(section) {
+    super(`Approve the ${SECTION_LABEL[section] || section} before it goes out.`);
+    this.name = "ApprovalError";
+  }
+}
+
+/** Approvals that survive a content change: only sections whose content is identical. */
+function keepApprovals(job, nextContent) {
+  const approvals = { ...(job.approvals || {}) };
+  for (const section of APPROVABLE) {
+    if (JSON.stringify(job.content?.[section] ?? null) !== JSON.stringify(nextContent?.[section] ?? null)) {
+      approvals[section] = null;
+    }
+  }
+  return approvals;
+}
+
+export async function setApproval(id, section, approved, user) {
+  const job = await getJob(id);
+  if (!job) throw new Error("Job not found");
+  if (!APPROVABLE.includes(section)) throw new Error("That section can't be approved.");
+  if (approved && !hasSubstance(section, job.content?.[section])) {
+    throw new Error(`The ${SECTION_LABEL[section]} is empty — write it first.`);
+  }
+  return updateJob(id, {
+    approvals: {
+      ...(job.approvals || {}),
+      [section]: approved ? { by: user?.email || null, at: new Date().toISOString() } : null,
+    },
+  });
+}
+
+export async function createJob({ title, writeUp, details, images, content, source, user, extra = {} }) {
   return jobs().insert({
+    ...extra,
     title: title?.trim() || "Untitled job",
     writeUp: writeUp || "",
     details: details || {},
     images: images || [],
-    content: {},
+    content: content || {},
+    approvals: {},
+    source: source || "manual",
     posts: [],
     website: null,
     createdBy: user?.email || null,
@@ -36,6 +81,21 @@ export async function createJob({ title, writeUp, details, images, user }) {
 
 export async function updateJob(id, patch) {
   return jobs().update(id, patch);
+}
+
+/** Edits from the editor. Changed sections lose their approval. */
+export async function saveJobEdits(id, input) {
+  const job = await getJob(id);
+  if (!job) return null;
+  const patch = { ...input };
+  if (input.details) patch.details = { ...job.details, ...input.details };
+  if (input.content) {
+    patch.content = { ...job.content, ...input.content };
+    patch.approvals = keepApprovals(job, patch.content);
+    // A hand edit makes the saved "previous AI version" stale.
+    patch.previousContent = null;
+  }
+  return updateJob(id, patch);
 }
 
 export async function deleteJob(id) {
@@ -74,7 +134,11 @@ function relevantQueries(searchData, job) {
   return { ...searchData, rows };
 }
 
-export async function generateForJob(id, { sections = SECTIONS, instructions, model } = {}) {
+/**
+ * `preserve`: sections whose existing non-empty fields win over the AI's
+ * (e.g. a case study imported from Word — AI only fills the gaps).
+ */
+export async function generateForJob(id, { sections = SECTIONS, instructions, model, preserve = [] } = {}) {
   const job = await getJob(id);
   if (!job) throw new Error("Job not found");
   if (!job.images?.length && !job.writeUp?.trim()) {
@@ -90,11 +154,23 @@ export async function generateForJob(id, { sections = SECTIONS, instructions, mo
     model,
   });
 
+  for (const section of preserve) {
+    const existing = job.content?.[section];
+    if (existing && content[section]) {
+      const kept = Object.fromEntries(
+        Object.entries(existing).filter(([, v]) => (Array.isArray(v) ? v.length : v !== "" && v != null))
+      );
+      content[section] = { ...content[section], ...kept };
+    }
+  }
+
   // Keep the previous version of rewritten sections, so model comparisons can be undone.
   const previous = Object.fromEntries(sections.filter((s) => job.content?.[s]).map((s) => [s, job.content[s]]));
+  const nextContent = { ...job.content, ...content };
 
   return updateJob(id, {
-    content: { ...job.content, ...content },
+    content: nextContent,
+    approvals: keepApprovals(job, nextContent),
     previousContent: Object.keys(previous).length ? { ...previous, model: job.model || null } : job.previousContent || null,
     generatedAt: run.at,
     model: run.model,
@@ -116,11 +192,16 @@ export function defaultPostText(job, service) {
   return "";
 }
 
-export async function scheduleForJob(id, { channelId, text, dueAt, firstComment, imageUrls }) {
+export async function scheduleForJob(id, { channelId, dueAt, imageUrls }) {
   const job = await getJob(id);
   if (!job) throw new Error("Job not found");
   const channel = (await listChannels()).find((c) => c.id === channelId);
   if (!channel) throw new Error("That channel isn't connected.");
+  if (!job.approvals?.[channel.service]) throw new ApprovalError(channel.service);
+
+  // The saved, approved wording — not whatever the browser sent.
+  const text = defaultPostText(job, channel.service);
+  const firstComment = job.content?.[channel.service]?.firstComment;
 
   const images = (job.images || []).filter((img) => !imageUrls || imageUrls.includes(img.url));
   const caseStudyUrl = job.website?.url;
@@ -151,7 +232,8 @@ export async function scheduleForJob(id, { channelId, text, dueAt, firstComment,
 export async function sendCaseStudy(id) {
   const job = await getJob(id);
   if (!job) throw new Error("Job not found");
-  if (!job.content?.caseStudy) throw new Error("Generate the case study first.");
+  if (!job.content?.caseStudy) throw new Error("Write the case study first.");
+  if (!job.approvals?.caseStudy) throw new ApprovalError("caseStudy");
   if (job.website?.projectId) throw new Error("This job already has a case study on the website.");
 
   const cs = job.content.caseStudy;

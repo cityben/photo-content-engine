@@ -11,8 +11,9 @@ import { JobEditor } from "./job-editor";
 
 export const dynamic = "force-dynamic";
 
-export default async function JobPage({ params }) {
+export default async function JobPage({ params, searchParams }) {
   const { id } = await params;
+  const startManual = (await searchParams)?.manual === "1";
   const job = await getJob(id);
   if (!job) notFound();
 
@@ -39,6 +40,7 @@ export default async function JobPage({ params }) {
         social={{ mode: socialMode(), postingEnabled: postingEnabled(), channels }}
         websiteConnected={websiteConfigured()}
         models={{ active: catalog.active, shortlist: catalog.shortlist }}
+        startManual={startManual}
       />
     </>
   );

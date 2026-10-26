@@ -85,6 +85,16 @@ Instagram needs at least one photo per post (several become a carousel). Links g
 
 Then on a job's **Case study** tab, **Send as draft** uploads the photos to the website and creates the case study unpublished. Review and publish it in the website admin. The **Search & keywords** and **Analytics** pages switch to real Search Console and GA4 numbers, and new jobs' keyword advice uses them.
 
+## Other systems (API keys)
+
+To let another project create jobs through `POST /api/v1/jobs`:
+
+```bash
+npm run new-api-key -- atlas
+```
+
+Put the printed `atlas:pce_…` line in `INTEGRATION_API_KEYS` (comma-separate several), redeploy, and give the other project the part after the colon. It sends `Authorization: Bearer pce_…`. Remove the entry to revoke it. Request and response formats: [API.md](API.md#for-other-systems-apiv1).
+
 ## Put it on a domain (Vercel)
 
 1. vercel.com → **Add New → Project** → import `cityben/photo-content-engine` (production branch `main`).

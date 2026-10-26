@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { ApprovalError } from "@/lib/jobs";
 import { requireUser } from "@/lib/session";
 import { BufferError } from "@/lib/social/buffer";
 import { PostingDisabledError } from "@/lib/social";
@@ -24,7 +25,7 @@ export function route(handler) {
           { status: 400 }
         );
       }
-      if (error instanceof PostingDisabledError) {
+      if (error instanceof PostingDisabledError || error instanceof ApprovalError) {
         return Response.json({ error: error.message }, { status: 403 });
       }
       if (error instanceof BufferError || error instanceof WebsiteError) {

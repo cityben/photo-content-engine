@@ -9,8 +9,8 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 | Page | |
 |---|---|
 | **Dashboard** | Setup checklist, what's scheduled this week, 30-day numbers, AI "do next" advice, recent jobs |
-| **Jobs → New job** | Upload up to 10 photos (resized in the browser) and a short write-up. AI reads the photos and writes everything |
-| **Job** | Tabs for LinkedIn, Instagram, Case study, Google Business, Keywords, Tips, Photos & brief. Edit, rewrite a section with your own instructions, schedule posts (next queue slot or a set UK time), send the case study to the website as a draft |
+| **Jobs → New job** | Upload up to 10 photos and a short write-up — or import a Word case study (sections, client, location and photos are read straight from the document, no AI). Then draft with AI, or create it without AI and write it yourself |
+| **Job** | Tabs for LinkedIn, Instagram, Case study, Google Business, Keywords, Tips, Photos & brief. Write by hand or with AI, rewrite a section with your own instructions, fill the case study from Word, **approve** each part, then schedule posts (next queue slot or a set UK time) and send the case study to the website as a draft |
 | **Calendar** | Month/week view of every scheduled, published and failed post. Click to edit text, reschedule or delete. Agenda list on phones |
 | **Analytics** | Impressions, reactions, engagement per channel, top posts (Buffer); website users, Google clicks, average position, enquiries and visits from social (website reports) |
 | **Search & keywords** | Your real Google Search Console queries with position, change, CTR, a plain-English "why" and quick wins (positions 4–20 with impressions) |
@@ -23,6 +23,15 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 - **Buffer** — Buffer's GraphQL API (`api.buffer.com`). Create, edit, delete and list posts; per-post and aggregated metrics (Buffer marks metrics experimental and refreshes them daily).
 - **Website** — the Acme Ltd website's v1 API: photo upload, case study drafts (`published: false`), and its own copy of Google Search Console, GA4 and Business Profile data.
 - **Keywords** — real Search Console data when the website is connected. Without it, keyword suggestions are clearly marked "Estimate".
+
+### Approval, and manual as the backup
+
+- Every part can be written by hand: **Create without AI** on a new job, **Write it myself** on an empty one, or **Fill from Word** on the case study. If the AI fails, the job is kept and opens ready to write manually.
+- **Nothing reaches Buffer or the website until a person approves that exact section.** The server enforces it: scheduling uses the saved, approved text (never text sent from the browser), and any edit or AI rewrite clears that section's approval. Approvals record who and when.
+
+### Other systems (API)
+
+`POST /api/v1/jobs` lets another system (e.g. your other project) create a job with whatever it already knows — title, sector, client, location, division, services, completion date — plus an optional Word case study and photos. Known values win over the document. Jobs arrive as unapproved drafts; optionally the AI drafts the posts. See [docs/API.md](docs/API.md#for-other-systems-apiv1).
 
 ### Testing without real accounts
 
@@ -51,7 +60,8 @@ Vercel. Full steps, including storage, Buffer, the website key and a custom doma
 - Every page and API route needs sign-in (`src/proxy.js`, plus a check in each API route). No public sign-up: accounts live in `AUTH_USERS` as salted scrypt hashes; 5 wrong passwords pause sign-in for 15 minutes. Optional Microsoft 365 sign-in is locked to your tenant.
 - API keys stay on the server. The Settings page reports status, never values.
 - Uploads are checked by their bytes, not their file name. Jobs can only reference photos this app stored, so the server can't be pointed at arbitrary URLs.
-- Real posting needs `ENABLE_BUFFER_POSTING=true`; case studies are always created unpublished.
+- Real posting needs `ENABLE_BUFFER_POSTING=true` **and** an approved section; case studies are always created unpublished.
+- `/api/v1/*` uses API keys (`INTEGRATION_API_KEYS`, compared in constant time). URLs it's given are fetched only over https from public addresses, size-capped, with no redirects.
 - Security headers on every response (frame denial, nosniff, HSTS, referrer and permissions policies).
 
 ## Project structure
@@ -69,7 +79,10 @@ src/
 └── lib/
     ├── ai.js                       AI Gateway: job content + growth insights
     ├── models.js                   Model shortlist, live prices, chosen model, run cost
-    ├── jobs.js                     Job lifecycle: create, write, schedule, send to website
+    ├── jobs.js                     Job lifecycle: create, write, approve, schedule, send to website
+    ├── content.js                  Sections and approval rules (shared with the browser)
+    ├── docx-map.js / docx-*.js     Word case study → fields (no AI), browser and server
+    ├── integration.js              /api/v1 job creation for other systems
     ├── social/                     Buffer GraphQL client, sandbox, provider switch
     ├── website-api.js              Website v1 API: uploads, case studies, reports
     ├── growth.js                   Analytics + insights data
@@ -92,6 +105,7 @@ tests/                              Jest: Buffer, website, sandbox, time, AI, mo
 | `npm test` / `npm run test:ci` | Tests (watch / once) |
 | `npm run lint` | ESLint |
 | `npm run hash-password -- <email>` | Create an `AUTH_USERS` entry |
+| `npm run new-api-key -- <name>` | Create an `INTEGRATION_API_KEYS` entry for another system |
 
 ## Roadmap
 

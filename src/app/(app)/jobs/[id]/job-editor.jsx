@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Loader2, RotateCcw, Save, Sparkles, Trash2 } from "lucide-react";
+import { Check, CheckCircle2, Copy, Loader2, PenLine, RotateCcw, Save, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Recommendations, SeoPanel } from "@/components/insight-panels";
@@ -31,8 +31,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/client-api";
+import { APPROVABLE, blankContent, needsApproval } from "@/lib/content";
 import { formatDateTime } from "@/lib/time";
 
+import { ApprovalBar } from "./approval-bar";
 import { CaseStudyForm } from "./case-study-form";
 import { SocialComposer } from "./social-composer";
 
@@ -172,10 +174,14 @@ function GoogleBusiness({ data, onChange }) {
   );
 }
 
-export function JobEditor({ initialJob, social, posts, websiteConnected, models }) {
+export function JobEditor({ initialJob, social, posts, websiteConnected, models, startManual }) {
   const router = useRouter();
   const [job, setJob] = useState(initialJob);
-  const [content, setContent] = useState(initialJob.content || {});
+  const [content, setContent] = useState(() => {
+    const c = initialJob.content || {};
+    // Manual start: blank sections to type into (anything imported is kept).
+    return startManual ? blankContent(initialJob, c) : c;
+  });
   const [brief, setBrief] = useState({
     title: initialJob.title,
     writeUp: initialJob.writeUp,
@@ -185,7 +191,9 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models 
   const [dirty, setDirty] = useState(new Set());
   const [saving, setSaving] = useState(false);
   const hasContent = (c) => Boolean(c && (c.linkedin || c.instagram || c.caseStudy));
-  const [tab, setTab] = useState(hasContent(initialJob.content) ? "linkedin" : "brief");
+  const [tab, setTab] = useState(() =>
+    startManual && initialJob.source === "word" ? "caseStudy" : startManual || hasContent(initialJob.content) ? "linkedin" : "brief"
+  );
   const [selected, setSelected] = useState(() => ({
     linkedin: (initialJob.images || []).slice(0, 1).map((i) => i.url),
     instagram: (initialJob.images || []).slice(0, 10).map((i) => i.url),
@@ -253,6 +261,24 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models 
   };
 
   const postsFor = (service) => posts.filter((p) => p.service === service);
+  const writeManually = () => {
+    setContent((c) => blankContent(job, c));
+    if (tab === "brief") setTab("linkedin");
+  };
+  const aiWrote = (section) => (job.aiRuns || []).some((r) => r.sections?.includes(section));
+  const approvalProps = (section) => ({
+    job,
+    section,
+    data: content[section],
+    dirty: dirty.has(section),
+    onSave: save,
+    onChanged: (updated) => {
+      setJob(updated);
+      router.refresh();
+    },
+    aiWritten: aiWrote(section),
+  });
+  const pending = needsApproval({ ...job, content });
 
   return (
     <div className="flex flex-col gap-6">
@@ -270,6 +296,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models 
               !hasContent(content) && <Badge variant="secondary">Not written yet</Badge>
             )}
             {job.searchDataUsed && <Badge variant="success">Uses Search Console data</Badge>}
+            {pending.length > 0 && <Badge variant="secondary">{pending.length} to approve</Badge>}
             {posts.length > 0 && <Badge>{posts.length} scheduled</Badge>}
             {job.website?.projectId && <Badge variant="success">Case study draft on website</Badge>}
           </div>
@@ -314,6 +341,9 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models 
             {TABS.map((t) => (
               <TabsTrigger key={t.id} value={t.id}>
                 {t.label}
+                {APPROVABLE.includes(t.section) && job.approvals?.[t.section] && !dirty.has(t.section) && (
+                  <CheckCircle2 aria-label="approved" className="size-3.5 text-green-700" />
+                )}
                 {dirty.has(t.section || "brief") && <span aria-label="unsaved" className="size-1.5 rounded-full bg-marker" />}
               </TabsTrigger>
             ))}
@@ -324,13 +354,21 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models 
           <CardContent>
             {!hasContent(content) && tab !== "brief" ? (
               <div className="flex flex-col items-start gap-3 rounded-lg bg-gray-50 p-6">
-                <p className="text-sm text-gray-600">Nothing written yet. Check the photos and brief, then write the content.</p>
-                <RewriteDialog job={job} tab={tab} onDone={onRewritten} models={models} />
+                <p className="text-sm text-gray-600">Nothing written yet. Draft it with AI, or write it yourself — either way you approve it before it goes out.</p>
+                <div className="flex flex-wrap gap-2">
+                  <RewriteDialog job={job} tab={tab} onDone={onRewritten} models={models} />
+                  <Button variant="outline" onClick={writeManually}>
+                    <PenLine /> Write it myself
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
                 <TabsContent value="linkedin">
+                  <ApprovalBar {...approvalProps("linkedin")} />
                   <SocialComposer
+                    approved={Boolean(job.approvals?.linkedin)}
+                    dirty={dirty.has("linkedin")}
                     service="linkedin"
                     data={content.linkedin}
                     onChange={setSection("linkedin")}
@@ -342,7 +380,10 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models 
                   />
                 </TabsContent>
                 <TabsContent value="instagram">
+                  <ApprovalBar {...approvalProps("instagram")} />
                   <SocialComposer
+                    approved={Boolean(job.approvals?.instagram)}
+                    dirty={dirty.has("instagram")}
                     service="instagram"
                     data={content.instagram}
                     onChange={setSection("instagram")}
@@ -354,7 +395,9 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models 
                   />
                 </TabsContent>
                 <TabsContent value="caseStudy">
+                  <ApprovalBar {...approvalProps("caseStudy")} />
                   <CaseStudyForm
+                    approved={Boolean(job.approvals?.caseStudy)}
                     job={job}
                     data={content.caseStudy}
                     onChange={setSection("caseStudy")}
@@ -364,6 +407,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models 
                   />
                 </TabsContent>
                 <TabsContent value="googleBusiness">
+                  <ApprovalBar {...approvalProps("googleBusiness")} />
                   <GoogleBusiness data={content.googleBusiness} onChange={setSection("googleBusiness")} />
                 </TabsContent>
                 <TabsContent value="seo">

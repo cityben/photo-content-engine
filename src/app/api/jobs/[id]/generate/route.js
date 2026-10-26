@@ -12,6 +12,7 @@ const schema = z.object({
   sections: z.array(z.enum(SECTIONS)).min(1).optional(),
   instructions: z.string().max(1000).optional(),
   model: z.string().refine(isValidModelId, "Unknown model id").optional(),
+  preserve: z.array(z.enum(SECTIONS)).optional(),
 });
 
 export const POST = route(async ({ request, params }) => {

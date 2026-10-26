@@ -50,7 +50,7 @@ function Preview({ service, text, images }) {
  * Edit + preview + schedule for one social network.
  * `data`: linkedin {text, hashtags, firstComment} | instagram {caption, hashtags, firstComment, altText}
  */
-export function SocialComposer({ service, data, onChange, job, social, posts, selectedImages, onSelectImages }) {
+export function SocialComposer({ service, data, onChange, job, social, posts, selectedImages, onSelectImages, approved, dirty }) {
   const { copied, copy } = useCopy();
   const info = serviceInfo(service);
   const bodyKey = service === "instagram" ? "caption" : "text";
@@ -62,7 +62,11 @@ export function SocialComposer({ service, data, onChange, job, social, posts, se
 
   const set = (key, value) => onChange({ ...data, [key]: value });
 
-  const problem = over
+  const problem = dirty
+    ? "Save and approve your changes before scheduling."
+    : !approved
+      ? `Approve this ${service === "instagram" ? "caption" : "post"} first — nothing goes out unapproved.`
+      : over
     ? `Too long for ${info.label} (${full.length}/${info.limit}).`
     : service === "instagram" && !images.length
       ? "Instagram needs at least one photo selected."
@@ -164,7 +168,6 @@ export function SocialComposer({ service, data, onChange, job, social, posts, se
           job={job}
           service={service}
           text={full}
-          firstComment={data?.firstComment}
           imageUrls={images.map((i) => i.url)}
           social={social}
           problem={problem}

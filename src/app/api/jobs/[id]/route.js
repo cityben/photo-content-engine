@@ -1,5 +1,5 @@
 import { notFound, readJson, route } from "@/lib/api";
-import { deleteJob, getJob, updateJob } from "@/lib/jobs";
+import { deleteJob, getJob, saveJobEdits } from "@/lib/jobs";
 import { contentPatchSchema, jobInputSchema } from "@/lib/schemas";
 
 export const GET = route(async ({ params }) => {
@@ -11,17 +11,10 @@ export const GET = route(async ({ params }) => {
 const patchSchema = jobInputSchema.extend({ content: contentPatchSchema.optional() });
 
 export const PATCH = route(async ({ request, params }) => {
-  const job = await getJob(params.id);
-  if (!job) throw notFound("Job not found");
   const input = await readJson(request, patchSchema);
-  const patch = { ...input };
-  if (input.content) {
-    patch.content = { ...job.content, ...input.content };
-    // Restoring or hand-editing makes the saved "previous version" stale.
-    patch.previousContent = null;
-  }
-  if (input.details) patch.details = { ...job.details, ...input.details };
-  return { job: await updateJob(params.id, patch) };
+  const job = await saveJobEdits(params.id, input);
+  if (!job) throw notFound("Job not found");
+  return { job };
 });
 
 export const DELETE = route(async ({ params }) => {

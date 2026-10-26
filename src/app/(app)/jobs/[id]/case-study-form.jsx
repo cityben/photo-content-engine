@@ -6,6 +6,7 @@ import { ExternalLink, Globe, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import options from "@/data/website-options.json";
+import { DocxImport } from "@/components/docx-import";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,7 +68,7 @@ function Section({ title, description, children }) {
   );
 }
 
-export function CaseStudyForm({ job, data, onChange, websiteConnected, dirty, onSave }) {
+export function CaseStudyForm({ job, data, onChange, websiteConnected, dirty, onSave, approved }) {
   const router = useRouter();
   const [sending, setSending] = useState(false);
   const cs = data || {};
@@ -75,10 +76,17 @@ export function CaseStudyForm({ job, data, onChange, websiteConnected, dirty, on
   const services = cs.services || [];
   const sent = job.website?.projectId;
 
+  const fillFromWord = ({ caseStudy }) => {
+    // Document values win where the document has them; everything else stays.
+    const filled = Object.fromEntries(
+      Object.entries(caseStudy).filter(([, v]) => (Array.isArray(v) ? v.length : v !== "" && v != null))
+    );
+    onChange({ ...cs, ...filled });
+  };
+
   const send = async () => {
     setSending(true);
     try {
-      if (dirty) await onSave();
       const { website } = await api(`/api/jobs/${job.id}/website`, { method: "POST" });
       toast.success("Case study saved to the website as a draft.");
       router.refresh();
@@ -102,8 +110,10 @@ export function CaseStudyForm({ job, data, onChange, websiteConnected, dirty, on
             <p className="text-xs text-gray-700">
               {sent
                 ? "Review and publish it in the website admin. Edits here won't sync after sending."
-                : websiteConnected
-                  ? "Photos upload to the website, then the case study is created unpublished for you to review."
+                : !approved || dirty
+                  ? "Approve the case study (above) first. Then photos upload to the website and it's created unpublished for a final check."
+                  : websiteConnected
+                  ? "Approved. Photos upload to the website, then the case study is created unpublished for a final check in the website admin."
                   : "Connect the website (WEBSITE_API_KEY in Settings) to send this straight in. You can copy fields meanwhile."}
             </p>
           </div>
@@ -118,12 +128,19 @@ export function CaseStudyForm({ job, data, onChange, websiteConnected, dirty, on
             <Badge variant="success">Draft</Badge>
           </div>
         ) : (
-          <Button onClick={send} disabled={!websiteConnected || sending || !cs.title || !cs.description}>
+          <Button onClick={send} disabled={!websiteConnected || sending || !approved || dirty || !cs.title || !cs.description}>
             {sending ? <Loader2 className="animate-spin" /> : <Globe />}
             {sending ? "Sending…" : "Send as draft"}
           </Button>
         )}
       </div>
+
+      {!sent && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gray-50 p-4">
+          <p className="text-sm text-gray-700">Have it in Word? Fill these fields from the document — no AI, nothing overwritten that the document doesn&apos;t have.</p>
+          <DocxImport onImported={fillFromWord} known={job.details || {}} withPhotos={false} label="Fill from Word" />
+        </div>
+      )}
 
       <Section title="Basics" description="Shown on the case study page and its listing card.">
         <Field id="cs-title" label="Title" max={70} value={cs.title} onChange={set("title")} />

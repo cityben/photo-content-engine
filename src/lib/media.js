@@ -74,6 +74,27 @@ export async function saveImage({ bytes, width, height }) {
   return { url: `/api/media/${record.id}`, public: false, ...dims };
 }
 
+/**
+ * Server-side counterpart of the browser resize: big photos from the API or a
+ * Word document are scaled to 2048px and re-encoded before saving.
+ */
+export async function saveImageFromBytes(bytes) {
+  const type = sniffImageType(bytes);
+  if (!type) throw new Error("Not a JPG, PNG or WebP image.");
+  try {
+    const sharp = (await import("sharp")).default;
+    const img = sharp(bytes, { failOn: "error" }).rotate();
+    const { data, info } = await img
+      .resize({ width: 2048, height: 2048, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 86, mozjpeg: true })
+      .toBuffer({ resolveWithObject: true });
+    return saveImage({ bytes: new Uint8Array(data), width: info.width, height: info.height });
+  } catch (error) {
+    if (bytes.byteLength <= MAX_IMAGE_BYTES) return saveImage({ bytes });
+    throw new Error(`Couldn't process an image: ${error.message}`);
+  }
+}
+
 export async function getStoredImage(id) {
   const record = await collection("media").get(id);
   if (!record) return null;

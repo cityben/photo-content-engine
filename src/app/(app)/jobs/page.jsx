@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/shell/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { needsApproval } from "@/lib/content";
 import { listJobs } from "@/lib/jobs";
 import { formatDateTime } from "@/lib/time";
 
@@ -16,7 +17,10 @@ function JobStatus({ job }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {!written && <Badge variant="secondary">Not written</Badge>}
-      {written && !job.posts?.length && <Badge>Ready to schedule</Badge>}
+      {needsApproval(job).length > 0 && <Badge variant="secondary">{needsApproval(job).length} to approve</Badge>}
+      {written && !job.posts?.length && needsApproval(job).length === 0 && <Badge>Ready to schedule</Badge>}
+      {job.source === "word" && <Badge variant="secondary">From Word</Badge>}
+      {job.source === "api" && <Badge variant="secondary">From API</Badge>}
       {job.posts?.length > 0 && <Badge variant="success">{job.posts.length} post{job.posts.length === 1 ? "" : "s"}</Badge>}
       {job.website?.projectId && <Badge variant="success">Case study draft</Badge>}
     </div>

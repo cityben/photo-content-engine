@@ -9,6 +9,7 @@ import { StatTile } from "@/components/stat-tile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { needsApproval } from "@/lib/content";
 import { latestInsights } from "@/lib/growth";
 import { listJobs } from "@/lib/jobs";
 import { setupStatus } from "@/lib/setup";
@@ -50,6 +51,7 @@ export default async function Dashboard() {
   const metric = (type) => stats?.totals?.find((m) => m.type === type);
   const next7 = upcoming?.filter((p) => new Date(p.dueAt) < new Date(now.getTime() + 7 * 86400000)) || [];
   const casesSent = jobs.filter((j) => j.website?.projectId).length;
+  const awaiting = jobs.filter((j) => needsApproval(j).length > 0);
   const name = session?.user?.name ? `, ${session.user.name.split(/[ .]/)[0].replace(/^./, (c) => c.toUpperCase())}` : "";
 
   return (
@@ -97,6 +99,23 @@ export default async function Dashboard() {
                 </li>
               ))}
             </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {awaiting.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Waiting for approval</CardTitle>
+            <CardDescription>Nothing here goes to Buffer or the website until someone approves it.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            {awaiting.slice(0, 5).map((j) => (
+              <Link key={j.id} href={`/jobs/${j.id}`} className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 p-3 text-sm outline-none transition-colors hover:bg-gray-100 focus-visible:ring-[3px] focus-visible:ring-ring">
+                <span className="truncate font-medium text-gray-800">{j.title}</span>
+                <Badge variant="secondary">{needsApproval(j).length} to approve</Badge>
+              </Link>
+            ))}
           </CardContent>
         </Card>
       )}

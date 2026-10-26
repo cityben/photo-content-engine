@@ -24,7 +24,7 @@ async function prepare(file) {
   return { blob, width: canvas.width, height: canvas.height };
 }
 
-async function upload(file) {
+export async function uploadPhoto(file) {
   const { blob, width, height } = await prepare(file);
   const form = new FormData();
   form.append("file", blob, "photo.jpg");
@@ -57,7 +57,7 @@ export function PhotoUploader({ images, onChange, disabled }) {
     let current = images;
     for (const file of batch) {
       try {
-        const image = await upload(file);
+        const image = await uploadPhoto(file);
         current = [...current, image];
         onChange(current);
       } catch (e) {

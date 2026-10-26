@@ -22,18 +22,22 @@ export const detailsSchema = z.object({
 
 export const jobInputSchema = z.object({
   title: z.string().max(200).optional(),
-  writeUp: z.string().max(10000).optional(),
+  writeUp: z.string().max(50000).optional(),
   details: detailsSchema.optional(),
   images: z.array(imageSchema).max(20).optional(),
 });
 
 export const contentPatchSchema = z.record(z.string(), z.any());
 
+export const jobCreateSchema = jobInputSchema.extend({
+  content: contentPatchSchema.optional(),
+  source: z.enum(["manual", "word", "ai"]).optional(),
+});
+
+// Text and first comment come from the saved, approved content, not the request.
 export const scheduleSchema = z.object({
   channelId: z.string().min(1).max(200),
-  text: z.string().min(1).max(5000),
   dueAt: z.string().datetime({ offset: true }).optional().nullable(),
-  firstComment: z.string().max(2000).optional().nullable(),
   imageUrls: z.array(z.string().max(2000).refine(isOwnImageUrl, "Unknown photo")).max(10).optional(),
 });
 

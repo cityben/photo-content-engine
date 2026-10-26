@@ -10,7 +10,8 @@
     "test": "jest --watch",
     "test:ci": "jest --ci",
     "lint": "eslint .",
-    "hash-password": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/hash-password.mjs"
+    "hash-password": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/hash-password.mjs",
+    "new-api-key": "node scripts/new-api-key.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.2",
@@ -19,13 +20,16 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "lucide-react": "^1.61.0",
+    "mammoth": "^1.13.0",
     "mongodb": "^6.3.0",
     "next": "^16.4.3",
     "next-auth": "^5.0.0-beta.32",
+    "node-html-parser": "^9.0.5",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "recharts": "^3.10.1",
+    "sharp": "^0.35.5",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
     "zod": "^4.6.7"

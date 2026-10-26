@@ -13,7 +13,7 @@ import { api } from "@/lib/client-api";
 import { APP_TIMEZONE, dateToZonedInput, formatDateTime, nextQueueSlot, zonedToDate } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
-export function ScheduleBox({ job, service, text, firstComment, imageUrls, social, problem }) {
+export function ScheduleBox({ job, service, text, imageUrls, social, problem }) {
   const router = useRouter();
   const channels = social.channels.filter((c) => c.service === service && !c.disconnected);
   const [channelId, setChannelId] = useState(channels[0]?.id || "");
@@ -44,10 +44,9 @@ export function ScheduleBox({ job, service, text, firstComment, imageUrls, socia
     try {
       const { post } = await api(`/api/jobs/${job.id}/schedule`, {
         method: "POST",
+        // The server posts the saved, approved wording.
         body: {
           channelId,
-          text,
-          firstComment: firstComment || null,
           imageUrls,
           dueAt: mode === "time" ? whenDate.toISOString() : null,
         },
