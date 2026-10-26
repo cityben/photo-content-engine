@@ -33,6 +33,7 @@ export const contentPatchSchema = z.record(z.string(), z.any());
 export const jobCreateSchema = jobInputSchema.extend({
   content: contentPatchSchema.optional(),
   source: z.enum(["manual", "word", "ai"]).optional(),
+  ideaId: z.string().max(100).optional(),
 });
 
 // Text and first comment come from the saved, approved content, not the request.

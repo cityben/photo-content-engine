@@ -11,6 +11,7 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 | **Dashboard** | Setup checklist, what's scheduled this week, 30-day numbers, AI "do next" advice, recent jobs |
 | **Jobs → New job** | Upload up to 10 photos and a short write-up — or import a Word case study (sections, client, location and photos are read straight from the document, no AI). Then draft with AI, or create it without AI and write it yourself |
 | **Job** | Tabs for LinkedIn, Instagram, Case study, Google Business, Keywords, Tips, Photos & brief. Write by hand or with AI, rewrite a section with your own instructions, fill the case study from Word, **approve** each part, then schedule posts (next queue slot or a set UK time) and send the case study to the website as a draft |
+| **Content pipeline** | Ideas board: Ideas → Planned → In progress → Published. Add from any keyword gap, keyword idea or AI question with one click, by hand, or let **Suggest ideas** plan 8–12 from your stored search, competitor, Search Console and review data. **Start a job** from an idea and the AI writes towards its target search; sending the case study marks it Published |
 | **Calendar** | Week, month and list views of every scheduled, published and failed post. Pick your publishing days and times per channel, drag approved posts from the "Ready to schedule" tray onto a slot, drag posts to reschedule (with Undo), or auto-fill the next free slots |
 | **Analytics** | Impressions, reactions, engagement per channel, top posts (Buffer); website users, Google clicks, average position, enquiries and visits from social (website reports) |
 | **Search & market** | *Your search*: real Search Console queries with position, change, CTR, a plain-English "why" and quick wins. *Competitors*: who Google sees as your competitors, niche leaders for your service keywords, traffic and visibility side by side over time, keyword gaps (what they rank for and you don't) and each competitor's best pages. *Keyword ideas*: UK demand around your services scored by volume, value, buying intent, difficulty and momentum. *Trends*: five-year Google Trends seasonality |
@@ -89,11 +90,12 @@ src/
     ├── website-api.js              Website v1 API: uploads, case studies, reports
     ├── seo/                        DataForSEO client (budget guard), market + reputation snapshots
     ├── schedule.js / autofill.js   Publishing days and times, calendar auto-fill
+    ├── ideas.js / planner.js       Content pipeline and the AI planner
     ├── growth.js                   Analytics + insights data
     ├── store/                      MongoDB, or in-memory for local dev
     ├── media.js                    Vercel Blob or local photo storage
     └── time.js                     UK-time scheduling helpers
-tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market
+tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market, ideas
 ```
 
 ### Updating website options
@@ -120,6 +122,7 @@ tests/                              Jest: Buffer, website, sandbox, time, AI, mo
 | ✅ | Website case study drafts, Search Console keywords, growth insights |
 | ✅ | Calendar publishing days, drag to schedule/reschedule, auto-fill |
 | ✅ | Competitors, keyword gaps, ideas, trends, reviews, mentions, AI visibility, backlinks, page checks (DataForSEO) |
-| Next | Content pipeline (ideas board), monthly report with PDF/CSV export, leads and outreach |
+| ✅ | Content pipeline linked to jobs and search data |
+| Next | Monthly report with PDF/CSV export, leads and outreach |
 
 Private — Acme Ltd only.

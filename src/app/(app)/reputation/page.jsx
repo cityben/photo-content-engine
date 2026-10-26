@@ -1,7 +1,7 @@
 import { Info, Star } from "lucide-react";
 
 import { Empty, LinkTabs, NotConnected, SectionCard } from "@/components/market-cards";
-import { ListEditor, RefreshButton, TaskWatcher, TextSetting } from "@/components/market-ui";
+import { AddIdeaButton, ListEditor, RefreshButton, TaskWatcher, TextSetting } from "@/components/market-ui";
 import { PageHeader } from "@/components/shell/app-shell";
 import { StatTile } from "@/components/stat-tile";
 import { Badge } from "@/components/ui/badge";
@@ -342,6 +342,7 @@ async function AiTab() {
                   <TableHead>Question</TableHead>
                   <TableHead className="text-right">AI searches/mo</TableHead>
                   <TableHead className="hidden lg:table-cell">Also named</TableHead>
+                  <TableHead className="sr-only">Add to pipeline</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -350,6 +351,9 @@ async function AiTab() {
                     <TableCell className="max-w-md font-medium text-gray-900">{q.question}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatNumber(q.volume)}</TableCell>
                     <TableCell className="hidden text-xs lg:table-cell">{q.brands.join(", ") || "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <AddIdeaButton title={q.question.charAt(0).toUpperCase() + q.question.slice(1)} source="ai-question" detail="Asked of AI assistants" format="article" />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

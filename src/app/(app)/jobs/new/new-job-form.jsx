@@ -21,11 +21,11 @@ async function post(url, body) {
   return json;
 }
 
-export function NewJobForm() {
+export function NewJobForm({ idea = null }) {
   const router = useRouter();
   const [images, setImages] = useState([]);
   const [mainUrl, setMainUrl] = useState(null);
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(idea?.title || "");
   const [writeUp, setWriteUp] = useState("");
   const [details, setDetails] = useState({});
   const [imported, setImported] = useState(null); // case study fields read from Word
@@ -59,6 +59,7 @@ export function NewJobForm() {
         images,
         mainImage: images.some((i) => i.url === mainUrl) ? mainUrl : images[0]?.url || null,
         source: imported ? "word" : useAi ? "ai" : "manual",
+        ...(idea ? { ideaId: idea.id } : {}),
         ...(imported ? { content: { caseStudy: { ...imported, title: imported.title || title } } } : {}),
       });
       jobId = job.id;
@@ -85,6 +86,18 @@ export function NewJobForm() {
   return (
     <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
       <div className="flex flex-col gap-6">
+        {idea && (
+          <div className="flex flex-col gap-1 rounded-xl bg-primary-soft p-4 text-sm text-primary">
+            <p className="font-semibold">From the content pipeline: {idea.title}</p>
+            {idea.keyword && (
+              <p>
+                Targets <strong>“{idea.keyword}”</strong>
+                {idea.volume != null ? ` (${idea.volume} searches/month)` : ""} — the AI writes towards it, and the idea moves to In progress.
+              </p>
+            )}
+            {idea.angle && <p className="text-primary/80">{idea.angle}</p>}
+          </div>
+        )}
         <Card>
           <CardHeader>
             <CardTitle>Already written it up?</CardTitle>

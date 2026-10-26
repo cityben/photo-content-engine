@@ -6,6 +6,7 @@ import {
   BarChart3,
   CalendarDays,
   FolderOpen,
+  KanbanSquare,
   LayoutDashboard,
   Lightbulb,
   Search,
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 export const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/jobs", label: "Jobs", icon: FolderOpen },
+  { href: "/ideas", label: "Content pipeline", icon: KanbanSquare },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/keywords", label: "Search & market", icon: Search },

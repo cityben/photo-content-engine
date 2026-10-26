@@ -247,6 +247,7 @@ async function CompetitorsTab({ selected }) {
                 { key: "theirUrl", label: "Their page", kind: "url", className: "hidden xl:table-cell" },
               ]}
               emptyText="Press Refresh gap to see what they rank for that you don't."
+              pipeline={{ source: "gap", detail: `${focus} ranks for this; you don't` }}
             />
           </SectionCard>
 
@@ -265,6 +266,7 @@ async function CompetitorsTab({ selected }) {
                 { key: "url", label: "Page", kind: "url", className: "hidden xl:table-cell" },
               ]}
               emptyText="Press Refresh their keywords."
+              pipeline={{ source: "gap", detail: `Earns ${focus} traffic` }}
             />
           </SectionCard>
         </div>
@@ -299,6 +301,7 @@ async function KeywordsTab() {
           rows={rows}
           extra={[{ key: "ourPosition", label: "You", kind: "position", sort: "ourPosition", className: "text-right" }]}
           emptyText="Press Refresh ideas. Refresh your own keywords first and each idea shows where you already rank."
+          pipeline={{ source: "ideas", detail: "UK search demand around your services" }}
         />
       </SectionCard>
 

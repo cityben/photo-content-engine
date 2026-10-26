@@ -170,7 +170,38 @@ function ExtraCell({ kind, value, row }) {
 }
 
 /** Sortable, filterable keyword table (ideas, gaps, ranked keywords). */
-export function KeywordTable({ rows, extra = [], initialSort = "score", emptyText = "No data yet — press Refresh." }) {
+/** Adds a keyword (or question) to the content pipeline as an idea. */
+export function AddIdeaButton({ keyword, title, volume, score, source, detail, format = "case-study" }) {
+  const [state, setState] = useState("idle"); // idle | busy | added
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-7 px-2 text-xs"
+      disabled={state !== "idle"}
+      aria-label={`Add ${title || keyword} to the content pipeline`}
+      onClick={async () => {
+        setState("busy");
+        try {
+          const { duplicate } = await api("/api/ideas", {
+            method: "POST",
+            body: { title: title || keyword.charAt(0).toUpperCase() + keyword.slice(1), keyword: keyword || null, volume: volume ?? null, score: score ?? null, source, sourceDetail: detail || null, format },
+          });
+          toast.success(duplicate ? "Already in the pipeline." : "Added to the content pipeline.");
+          setState("added");
+        } catch (e) {
+          toast.error(e.message);
+          setState("idle");
+        }
+      }}
+    >
+      {state === "busy" ? <Loader2 className="animate-spin" /> : state === "added" ? null : <Plus />}
+      {state === "added" ? "In pipeline" : "Pipeline"}
+    </Button>
+  );
+}
+
+export function KeywordTable({ rows, extra = [], initialSort = "score", emptyText = "No data yet — press Refresh.", pipeline }) {
   const [q, setQ] = useState("");
   const [minVolume, setMinVolume] = useState(0);
   const [maxDifficulty, setMaxDifficulty] = useState(100);
@@ -250,6 +281,7 @@ export function KeywordTable({ rows, extra = [], initialSort = "score", emptyTex
                 {e.label}
               </TableHead>
             ))}
+            {pipeline && <TableHead className="sr-only">Add to pipeline</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -276,6 +308,11 @@ export function KeywordTable({ rows, extra = [], initialSort = "score", emptyTex
                   <ExtraCell kind={e.kind} value={r[e.key]} row={r} />
                 </TableCell>
               ))}
+              {pipeline && (
+                <TableCell className="text-right">
+                  <AddIdeaButton keyword={r.keyword} volume={r.volume} score={r.score} source={pipeline.source} detail={pipeline.detail} />
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>

@@ -6,6 +6,7 @@
 import { generateJobContent, SECTIONS } from "@/lib/ai";
 import { cached } from "@/lib/cache";
 import { APPROVABLE, hasSubstance, orderedImages, SECTION_LABEL } from "@/lib/content";
+import { markPublishedForJob } from "@/lib/ideas";
 import { deleteImage } from "@/lib/media";
 import { nextSlotFor } from "@/lib/schedule";
 import { createPost, listChannels, listPosts, socialMode } from "@/lib/social";
@@ -264,6 +265,7 @@ export async function sendCaseStudy(id) {
   });
 
   await updateJob(id, { website: { ...result, sentAt: new Date().toISOString() } });
+  await markPublishedForJob(job);
   return result;
 }
 

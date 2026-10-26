@@ -125,6 +125,9 @@ function describeJob(job) {
     d.location && `Location: ${d.location}`,
     d.client && `Client / building: ${d.client}`,
     d.completedOn && `Completed: ${d.completedOn}`,
+    job.target?.keyword &&
+      `Target search: "${job.target.keyword}"${job.target.volume ? ` (${job.target.volume} UK searches/month)` : ""}. Use this exact phrase naturally in the case study title or summary, the SEO keywords and at least one post — never stuffed.`,
+    job.target?.angle && `Planned angle: ${job.target.angle}`,
     "",
     "Write-up from the team:",
     job.writeUp?.trim() || "(none — rely on the photos)",
@@ -243,4 +246,42 @@ You are also a pragmatic B2B growth advisor for a contractor. Recommendations mu
     prompt: `Data for the last ${data.days} days (JSON):\n${JSON.stringify(data, null, 1).slice(0, 30000)}`,
   });
   return output;
+}
+
+/* --- Content planner ------------------------------------------------------ */
+
+const plannedIdeasSchema = z.object({
+  ideas: z
+    .array(
+      z.object({
+        title: z.string().describe("Working title, specific: a real job type, building type or question — not a slogan"),
+        angle: z.string().describe("1-2 sentences: what the piece shows or answers, and which photos or job details it needs"),
+        keyword: z.string().describe("The exact search phrase it targets, copied from the data provided; empty string if none fits"),
+        format: z.enum(["case-study", "service-page", "article", "linkedin", "google-business"]),
+        why: z.string().describe("One sentence tying it to the data: volume, gap, rising trend, quick win or AI question"),
+      })
+    )
+    .describe("8-12 ideas, strongest first"),
+});
+
+/**
+ * Plan content from stored market data (keyword demand, competitor gaps,
+ * questions AI assistants get, Search Console quick wins, review topics).
+ * Returns { ideas, run }.
+ */
+export async function generateContentIdeas(context) {
+  const modelId = await getActiveModel();
+  const { output, usage, providerMetadata } = await generateText({
+    model: modelId,
+    system: `${VOICE}
+
+You are planning content for a building services contractor (air conditioning, mechanical, electrical, facilities management) in London, Kent and the South East. Their content is mostly case studies of real jobs with photos, plus service pages and short posts. Prefer ideas the team can make from jobs they actually do. Only use keywords that appear in the data; never invent search volumes. Skip anything already in the pipeline.`,
+    maxOutputTokens: 5000,
+    output: Output.object({ schema: plannedIdeasSchema }),
+    prompt: `Data (JSON):\n${JSON.stringify(context, null, 1).slice(0, 40000)}`,
+  });
+  return {
+    ideas: output.ideas,
+    run: { model: modelId, costUsd: await runCost(modelId, usage, providerMetadata), at: new Date().toISOString() },
+  };
 }
