@@ -12,9 +12,7 @@ import { z } from "zod";
 
 import options from "@/data/website-options.json";
 import { getStoredImage } from "@/lib/media";
-
-export const DEFAULT_MODEL = "anthropic/claude-sonnet-5.5";
-export const aiModel = () => process.env.AI_GATEWAY_MODEL || DEFAULT_MODEL;
+import { getActiveModel, runCost } from "@/lib/models";
 
 const ALL_SERVICES = options.serviceGroups.flatMap((g) => g.services);
 
@@ -151,9 +149,12 @@ Use this to pick keywords the site already gets impressions for but ranks 4-20 (
 /**
  * Generate content for a job. `sections` limits which parts are written
  * (default: all). `searchData` is the website's Search Console report, if
- * connected. `instructions` lets the user steer a rewrite.
+ * connected. `instructions` lets the user steer a rewrite. `model` overrides
+ * the chosen model for this run (to compare models on the same job).
+ *
+ * Returns { content, run } — run records model, tokens and cost.
  */
-export async function generateJobContent(job, { sections = SECTIONS, searchData, instructions, current } = {}) {
+export async function generateJobContent(job, { sections = SECTIONS, searchData, instructions, current, model } = {}) {
   const wanted = sections.filter((s) => SECTION_SCHEMAS[s]);
   const schema = z.object(Object.fromEntries(wanted.map((s) => [s, SECTION_SCHEMAS[s]])));
 
@@ -172,8 +173,9 @@ export async function generateJobContent(job, { sections = SECTIONS, searchData,
     `\nWrite: ${wanted.join(", ")}.`,
   ].join("\n");
 
-  const { output } = await generateText({
-    model: aiModel(),
+  const modelId = model || (await getActiveModel());
+  const { output, usage, providerMetadata } = await generateText({
+    model: modelId,
     system: VOICE,
     maxOutputTokens: 8000,
     output: Output.object({ schema }),
@@ -185,7 +187,16 @@ export async function generateJobContent(job, { sections = SECTIONS, searchData,
     ],
   });
 
-  return cleanContent(output);
+  const run = {
+    model: modelId,
+    sections: wanted,
+    full: wanted.length === SECTIONS.length,
+    inputTokens: usage?.inputTokens ?? null,
+    outputTokens: usage?.outputTokens ?? null,
+    costUsd: await runCost(modelId, usage, providerMetadata),
+    at: new Date().toISOString(),
+  };
+  return { content: cleanContent(output), run };
 }
 
 /** Keep values the website will accept; tidy hashtags. */
@@ -223,7 +234,7 @@ const insightsSchema = z.object({
  */
 export async function generateInsights(data) {
   const { output } = await generateText({
-    model: aiModel(),
+    model: await getActiveModel(),
     system: `${VOICE}
 
 You are also a pragmatic B2B growth advisor for a contractor. Recommendations must be specific and doable by a small marketing team. Base every claim on the data provided; if data is missing or simulated, say so and give best-practice guidance instead.`,

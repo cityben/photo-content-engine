@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Loader2, Save, Sparkles, Trash2 } from "lucide-react";
+import { Check, Copy, Loader2, RotateCcw, Save, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Recommendations, SeoPanel } from "@/components/insight-panels";
 import { JobDetailsFields } from "@/components/job-details-fields";
+import { money } from "@/components/model-picker";
 import { PhotoUploader } from "@/components/photo-uploader";
 import { useCopy } from "@/components/use-copy";
 import {
@@ -26,6 +27,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/client-api";
@@ -44,10 +46,11 @@ const TABS = [
   { id: "brief", label: "Photos & brief" },
 ];
 
-function RewriteDialog({ job, tab, onDone }) {
+function RewriteDialog({ job, tab, onDone, models }) {
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState("tab");
   const [instructions, setInstructions] = useState("");
+  const [model, setModel] = useState("default");
   const [busy, setBusy] = useState(false);
   const section = TABS.find((t) => t.id === tab)?.section;
   const written = Boolean(job.generatedAt || job.content?.linkedin || job.content?.caseStudy);
@@ -60,6 +63,7 @@ function RewriteDialog({ job, tab, onDone }) {
         body: {
           ...(scope === "tab" && section ? { sections: [section] } : {}),
           ...(instructions.trim() ? { instructions: instructions.trim() } : {}),
+          ...(model !== "default" ? { model } : {}),
         },
       });
       onDone(updated);
@@ -114,6 +118,27 @@ function RewriteDialog({ job, tab, onDone }) {
             maxLength={1000}
           />
         </div>
+        {models && (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="rewrite-model">Model</Label>
+            <Select value={model} onValueChange={setModel}>
+              <SelectTrigger id="rewrite-model">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Default — {models.active}</SelectItem>
+                {models.shortlist
+                  .filter((m) => m.id !== models.active && m.available !== false)
+                  .map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name} · {m.score}/10{m.perJob != null ? ` · ≈${money(m.perJob)}/job` : ""}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">Try another model on this job to compare. You can restore the previous version afterwards.</p>
+          </div>
+        )}
         <DialogFooter>
           <Button onClick={run} disabled={busy}>
             {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
@@ -147,7 +172,7 @@ function GoogleBusiness({ data, onChange }) {
   );
 }
 
-export function JobEditor({ initialJob, social, posts, websiteConnected }) {
+export function JobEditor({ initialJob, social, posts, websiteConnected, models }) {
   const router = useRouter();
   const [job, setJob] = useState(initialJob);
   const [content, setContent] = useState(initialJob.content || {});
@@ -201,6 +226,22 @@ export function JobEditor({ initialJob, social, posts, websiteConnected }) {
     router.refresh();
   };
 
+  const restorePrevious = async () => {
+    const { model: _model, ...sections } = job.previousContent || {};
+    try {
+      const { job: updated } = await api(`/api/jobs/${job.id}`, { method: "PATCH", body: { content: sections } });
+      setJob({ ...updated, previousContent: null });
+      setContent(updated.content || {});
+      toast.success("Previous version restored.");
+      router.refresh();
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const lastRun = job.aiRuns?.at(-1);
+  const totalCost = (job.aiRuns || []).reduce((sum, r) => sum + (r.costUsd || 0), 0);
+
   const remove = async () => {
     try {
       await api(`/api/jobs/${job.id}`, { method: "DELETE" });
@@ -220,7 +261,11 @@ export function JobEditor({ initialJob, social, posts, websiteConnected }) {
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{job.title}</h1>
           <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
             {job.generatedAt ? (
-              <span>Written {formatDateTime(job.generatedAt)}</span>
+              <span>
+                Written {formatDateTime(job.generatedAt)}
+                {lastRun && ` by ${lastRun.model}${lastRun.costUsd != null ? ` · ${money(lastRun.costUsd, 3)}` : ""}`}
+                {job.aiRuns?.length > 1 && totalCost > 0 && ` · ${money(totalCost, 3)} across ${job.aiRuns.length} runs`}
+              </span>
             ) : (
               !hasContent(content) && <Badge variant="secondary">Not written yet</Badge>
             )}
@@ -235,7 +280,12 @@ export function JobEditor({ initialJob, social, posts, websiteConnected }) {
               {saving ? <Loader2 className="animate-spin" /> : <Save />} Save changes
             </Button>
           )}
-          <RewriteDialog job={job} tab={tab} onDone={onRewritten} />
+          {job.previousContent && (
+            <Button variant="ghost" onClick={restorePrevious} title={job.previousContent.model ? `Back to the ${job.previousContent.model} version` : undefined}>
+              <RotateCcw /> Restore previous
+            </Button>
+          )}
+          <RewriteDialog job={job} tab={tab} onDone={onRewritten} models={models} />
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="Delete job">
@@ -275,7 +325,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected }) {
             {!hasContent(content) && tab !== "brief" ? (
               <div className="flex flex-col items-start gap-3 rounded-lg bg-gray-50 p-6">
                 <p className="text-sm text-gray-600">Nothing written yet. Check the photos and brief, then write the content.</p>
-                <RewriteDialog job={job} tab={tab} onDone={onRewritten} />
+                <RewriteDialog job={job} tab={tab} onDone={onRewritten} models={models} />
               </div>
             ) : (
               <>

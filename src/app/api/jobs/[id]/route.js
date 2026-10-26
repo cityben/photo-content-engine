@@ -15,7 +15,11 @@ export const PATCH = route(async ({ request, params }) => {
   if (!job) throw notFound("Job not found");
   const input = await readJson(request, patchSchema);
   const patch = { ...input };
-  if (input.content) patch.content = { ...job.content, ...input.content };
+  if (input.content) {
+    patch.content = { ...job.content, ...input.content };
+    // Restoring or hand-editing makes the saved "previous version" stale.
+    patch.previousContent = null;
+  }
   if (input.details) patch.details = { ...job.details, ...input.details };
   return { job: await updateJob(params.id, patch) };
 });

@@ -11,7 +11,7 @@ These routes serve the web app. Every route requires a signed-in session (the `a
 | GET | `/api/jobs/:id` | | `{ job }` |
 | PATCH | `/api/jobs/:id` | any of `title, writeUp, details, images, content` (content sections merge) | `{ job }` |
 | DELETE | `/api/jobs/:id` | | `{ ok }` — Buffer posts and website drafts are not touched |
-| POST | `/api/jobs/:id/generate` | `{ sections?: ["linkedin","instagram","caseStudy","googleBusiness","seo","recommendations"], instructions? }` | `{ job }` with new `content` |
+| POST | `/api/jobs/:id/generate` | `{ sections?: ["linkedin","instagram","caseStudy","googleBusiness","seo","recommendations"], instructions?, model? }` | `{ job }` with new `content`; the run's model, tokens and cost are added to `aiRuns` |
 | POST | `/api/jobs/:id/schedule` | `{ channelId, text, dueAt? (ISO with offset; omit = next queue slot), firstComment?, imageUrls? }` | `{ post }` |
 | POST | `/api/jobs/:id/website` | | `{ website: { projectId, slug, url, status: "draft" } }` |
 
@@ -35,6 +35,13 @@ These routes serve the web app. Every route requires a signed-in session (the `a
 | DELETE | `/api/posts/:id` | `{ ok }` |
 
 Post shape: `{ id, channelId, service, channelName, text, status, dueAt, sentAt, externalLink, error, images[], metrics?, jobId?, jobTitle? }`.
+
+## AI model
+
+| Method | Path | |
+|---|---|---|
+| GET | `/api/settings/model` | `{ catalog: { active, shortlist[], bestValue, others[], usage } }` — prices per 1M tokens from the gateway |
+| PUT | `/api/settings/model` | `{ model }` — sets the model for new writes |
 
 ## Insights
 

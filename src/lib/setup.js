@@ -1,20 +1,21 @@
 /** What's connected, for the dashboard checklist and Settings. No secrets leave the server. */
 
-import { aiModel } from "@/lib/ai";
+import { getActiveModel } from "@/lib/models";
 import { blobConfigured } from "@/lib/media";
 import { parseUsers } from "@/lib/passwords";
 import { postingEnabled, socialMode } from "@/lib/social";
 import { storageMode } from "@/lib/store";
 import { websiteConfigured } from "@/lib/website-api";
 
-export function setupStatus() {
+export async function setupStatus() {
+  const model = await getActiveModel();
   const onVercel = Boolean(process.env.VERCEL);
   return [
     {
       id: "ai",
       label: "AI writing (Vercel AI Gateway)",
       done: onVercel || Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN),
-      detail: `Model: ${aiModel()}`,
+      detail: `Model: ${model}`,
       fix: "Set AI_GATEWAY_API_KEY locally. On Vercel it signs in automatically.",
     },
     {

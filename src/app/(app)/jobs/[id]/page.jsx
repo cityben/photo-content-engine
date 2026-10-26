@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { getJob } from "@/lib/jobs";
+import { modelCatalog } from "@/lib/models";
 import { getPost, listChannels, postingEnabled, socialMode } from "@/lib/social";
 import { websiteConfigured } from "@/lib/website-api";
 
@@ -15,8 +16,9 @@ export default async function JobPage({ params }) {
   const job = await getJob(id);
   if (!job) notFound();
 
-  const [channels, posts] = await Promise.all([
+  const [channels, catalog, posts] = await Promise.all([
     listChannels().catch(() => []),
+    modelCatalog(),
     Promise.all(
       (job.posts || []).map((p) =>
         getPost(p.postId)
@@ -36,6 +38,7 @@ export default async function JobPage({ params }) {
         posts={posts.filter((p) => p.status !== "deleted")}
         social={{ mode: socialMode(), postingEnabled: postingEnabled(), channels }}
         websiteConnected={websiteConfigured()}
+        models={{ active: catalog.active, shortlist: catalog.shortlist }}
       />
     </>
   );

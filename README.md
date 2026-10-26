@@ -15,11 +15,11 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 | **Analytics** | Impressions, reactions, engagement per channel, top posts (Buffer); website users, Google clicks, average position, enquiries and visits from social (website reports) |
 | **Search & keywords** | Your real Google Search Console queries with position, change, CTR, a plain-English "why" and quick wins (positions 4–20 with impressions) |
 | **Growth insights** | AI reads all of the above and gives a summary, a prioritised to-do list and content ideas |
-| **Settings** | Live connection checks for Buffer, the website, AI, storage and sign-in, with the exact variable to set |
+| **Settings** | AI model picker (scores, live prices, cost per job, gateway credit) and live connection checks for Buffer, the website, storage and sign-in |
 
 ### Where the data comes from
 
-- **AI** — every call goes through the Vercel AI Gateway (default `anthropic/claude-sonnet-5.5`). Output is typed (zod schemas), so case-study fields use the website's exact sectors, services and divisions.
+- **AI** — every call goes through the Vercel AI Gateway. Pick the model in **Settings → AI model**: a shortlist of image-capable models with a writing score, live prices per 1M tokens and an estimated cost per job, or any other gateway model. Each run records its model, tokens and cost; **Rewrite → Model** tries another model on one job, and **Restore previous** undoes it. Output is typed (zod schemas), so case-study fields use the website's exact sectors, services and divisions.
 - **Buffer** — Buffer's GraphQL API (`api.buffer.com`). Create, edit, delete and list posts; per-post and aggregated metrics (Buffer marks metrics experimental and refreshes them daily).
 - **Website** — the Acme Ltd website's v1 API: photo upload, case study drafts (`published: false`), and its own copy of Google Search Console, GA4 and Business Profile data.
 - **Keywords** — real Search Console data when the website is connected. Without it, keyword suggestions are clearly marked "Estimate".
@@ -68,6 +68,7 @@ src/
 ├── data/website-options.json       Website sectors, services, divisions (snapshot)
 └── lib/
     ├── ai.js                       AI Gateway: job content + growth insights
+    ├── models.js                   Model shortlist, live prices, chosen model, run cost
     ├── jobs.js                     Job lifecycle: create, write, schedule, send to website
     ├── social/                     Buffer GraphQL client, sandbox, provider switch
     ├── website-api.js              Website v1 API: uploads, case studies, reports
@@ -75,7 +76,7 @@ src/
     ├── store/                      MongoDB, or in-memory for local dev
     ├── media.js                    Vercel Blob or local photo storage
     └── time.js                     UK-time scheduling helpers
-tests/                              Jest: Buffer, website, sandbox, time, AI, auth, passwords
+tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords
 ```
 
 ### Updating website options

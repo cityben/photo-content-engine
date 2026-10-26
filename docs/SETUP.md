@@ -56,7 +56,7 @@ Only accounts from your tenant with an email on `AUTH_ALLOWED_DOMAINS` (default 
 
 ## AI (Vercel AI Gateway)
 
-All AI goes through the gateway — no Anthropic key. On Vercel nothing is needed: the project's OIDC token signs in automatically. Locally, create a key in Vercel → **AI Gateway → API Keys** and set `AI_GATEWAY_API_KEY` (or run `vercel env pull`). Change model with `AI_GATEWAY_MODEL`, e.g. `anthropic/claude-opus-5.5`.
+All AI goes through the gateway — no Anthropic key. On Vercel nothing is needed: the project's OIDC token signs in automatically. Locally, create a key in Vercel → **AI Gateway → API Keys** and set `AI_GATEWAY_API_KEY` (or run `vercel env pull`). Choose the model in the app under **Settings → AI model** (scores, live prices, cost per job). `AI_GATEWAY_MODEL` only sets the starting default.
 
 ## Storage
 

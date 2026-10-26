@@ -3,6 +3,7 @@ import { z } from "zod";
 import { SECTIONS } from "@/lib/ai";
 import { readJson, route } from "@/lib/api";
 import { generateForJob } from "@/lib/jobs";
+import { isValidModelId } from "@/lib/models";
 
 // One vision call that writes every section; allow time for it.
 export const maxDuration = 120;
@@ -10,6 +11,7 @@ export const maxDuration = 120;
 const schema = z.object({
   sections: z.array(z.enum(SECTIONS)).min(1).optional(),
   instructions: z.string().max(1000).optional(),
+  model: z.string().refine(isValidModelId, "Unknown model id").optional(),
 });
 
 export const POST = route(async ({ request, params }) => {

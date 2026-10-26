@@ -3,7 +3,7 @@
  * from it — social posts, the website case study, keywords, advice.
  */
 
-import { generateJobContent, aiModel, SECTIONS } from "@/lib/ai";
+import { generateJobContent, SECTIONS } from "@/lib/ai";
 import { cached } from "@/lib/cache";
 import { deleteImage } from "@/lib/media";
 import { createPost, listChannels, socialMode } from "@/lib/social";
@@ -74,7 +74,7 @@ function relevantQueries(searchData, job) {
   return { ...searchData, rows };
 }
 
-export async function generateForJob(id, { sections = SECTIONS, instructions } = {}) {
+export async function generateForJob(id, { sections = SECTIONS, instructions, model } = {}) {
   const job = await getJob(id);
   if (!job) throw new Error("Job not found");
   if (!job.images?.length && !job.writeUp?.trim()) {
@@ -82,17 +82,23 @@ export async function generateForJob(id, { sections = SECTIONS, instructions } =
   }
 
   const searchData = relevantQueries(await searchConsoleData(), job);
-  const generated = await generateJobContent(job, {
+  const { content, run } = await generateJobContent(job, {
     sections,
     searchData,
     instructions,
     current: job.content,
+    model,
   });
 
+  // Keep the previous version of rewritten sections, so model comparisons can be undone.
+  const previous = Object.fromEntries(sections.filter((s) => job.content?.[s]).map((s) => [s, job.content[s]]));
+
   return updateJob(id, {
-    content: { ...job.content, ...generated },
-    generatedAt: new Date().toISOString(),
-    model: aiModel(),
+    content: { ...job.content, ...content },
+    previousContent: Object.keys(previous).length ? { ...previous, model: job.model || null } : job.previousContent || null,
+    generatedAt: run.at,
+    model: run.model,
+    aiRuns: [...(job.aiRuns || []), run].slice(-20),
     searchDataUsed: Boolean(searchData?.rows?.length),
   });
 }

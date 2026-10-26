@@ -45,7 +45,7 @@ export default async function Dashboard() {
     safe(latestInsights(), null),
   ]);
 
-  const setup = setupStatus();
+  const setup = await setupStatus();
   const remaining = setup.filter((s) => !s.done);
   const metric = (type) => stats?.totals?.find((m) => m.type === type);
   const next7 = upcoming?.filter((p) => new Date(p.dueAt) < new Date(now.getTime() + 7 * 86400000)) || [];

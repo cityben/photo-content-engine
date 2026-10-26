@@ -1,9 +1,11 @@
 import { CheckCircle2, CircleAlert, Circle } from "lucide-react";
 
+import { ModelPicker, money } from "@/components/model-picker";
 import { ChannelChip } from "@/components/post-row";
 import { PageHeader } from "@/components/shell/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { gatewayCredits, modelCatalog } from "@/lib/models";
 import { setupStatus } from "@/lib/setup";
 import { listChannels, socialMode, status as socialStatus } from "@/lib/social";
 import { checkWebsiteConnection, WEBSITE_URL } from "@/lib/website-api";
@@ -39,11 +41,13 @@ function Integration({ title, state, summary, children }) {
 }
 
 export default async function SettingsPage() {
-  const setup = Object.fromEntries(setupStatus().map((s) => [s.id, s]));
-  const [buffer, channels, website] = await Promise.all([
+  const setup = Object.fromEntries((await setupStatus()).map((s) => [s.id, s]));
+  const [buffer, channels, website, catalog, credits] = await Promise.all([
     socialStatus(),
     listChannels().catch(() => []),
     checkWebsiteConnection(),
+    modelCatalog(),
+    gatewayCredits(),
   ]);
   const scopes = website.me?.scopes || website.me?.key?.scopes;
 
@@ -53,6 +57,31 @@ export default async function SettingsPage() {
         title="Settings"
         description="What's connected. Keys live in Vercel → Project → Settings → Environment Variables; redeploy after changing them. This page never shows their values."
       />
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-col gap-1">
+              <CardTitle>AI model</CardTitle>
+              <CardDescription>
+                Which model writes your posts, case studies and advice. All run through the Vercel AI Gateway — one bill, no provider keys.
+                Override per job with Rewrite → Model.
+              </CardDescription>
+            </div>
+            {credits && (
+              <Badge variant="secondary">
+                Gateway credit {money(Number(credits.balance))} · used {money(Number(credits.totalUsed))}
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ModelPicker catalog={catalog} />
+          <p className="mt-3 text-xs text-gray-500">
+            Locally the gateway needs <Env>AI_GATEWAY_API_KEY</Env>; on Vercel it signs in automatically. <Env>AI_GATEWAY_MODEL</Env> sets the default until you pick one here.
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Integration
@@ -115,12 +144,6 @@ export default async function SettingsPage() {
               Add it as <Env>WEBSITE_API_KEY</Env> (starts <Env>cc_live_</Env>). <Env>WEBSITE_API_SECRET</Env> isn&apos;t used by the website and can be removed.
             </li>
           </ol>
-        </Integration>
-
-        <Integration title="AI (Vercel AI Gateway)" state={setup.ai.done ? "ok" : "off"} summary={setup.ai.detail}>
-          <p className="text-gray-600">
-            On Vercel the gateway signs in automatically. Locally set <Env>AI_GATEWAY_API_KEY</Env>. Change model with <Env>AI_GATEWAY_MODEL</Env> (any gateway model ID).
-          </p>
         </Integration>
 
         <Integration title="Storage" state={setup.storage.done && setup.photos.done ? "ok" : "off"} summary="Where jobs and photos are kept.">
