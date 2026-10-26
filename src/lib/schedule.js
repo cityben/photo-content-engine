@@ -7,9 +7,10 @@
 import { collection } from "@/lib/store";
 import { DEFAULT_DAYS, nextQueueSlot, QUEUE_SLOTS } from "@/lib/time";
 
+// perDay: the target number of posts on each posting day (the Targets panel).
 export const DEFAULT_SCHEDULE = {
-  linkedin: { days: [2, 3, 4], times: ["08:30", "12:30"] },
-  instagram: { days: [1, 3, 5], times: ["12:30", "18:00"] },
+  linkedin: { days: [2, 3, 4], times: ["08:30", "12:30"], perDay: 1 },
+  instagram: { days: [1, 3, 5], times: ["12:30", "18:00"], perDay: 1 },
 };
 
 const settings = () => collection("settings");
@@ -17,7 +18,9 @@ const settings = () => collection("settings");
 function clean(entry) {
   const days = [...new Set((entry?.days || []).map(Number).filter((d) => d >= 0 && d <= 6))].sort();
   const times = [...new Set((entry?.times || []).filter((t) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t)))].sort();
-  return { days: days.length ? days : DEFAULT_DAYS, times: times.length ? times : QUEUE_SLOTS };
+  const finalTimes = times.length ? times : QUEUE_SLOTS;
+  const perDay = Math.min(finalTimes.length, Math.max(1, Math.round(Number(entry?.perDay) || 1)));
+  return { days: days.length ? days : DEFAULT_DAYS, times: finalTimes, perDay };
 }
 
 export async function getSchedule() {
@@ -34,7 +37,8 @@ export async function getSchedule() {
 export async function setSchedule(schedule, user) {
   const value = Object.fromEntries(Object.keys(DEFAULT_SCHEDULE).map((s) => [s, clean(schedule[s])]));
   const [doc] = await settings().find({ key: "publishing-schedule" });
-  const record = { key: "publishing-schedule", value, updatedBy: user?.email || null };
+  // Targets count from the day they were first set, not from 1 January.
+  const record = { key: "publishing-schedule", value, since: doc?.since || new Date().toISOString().slice(0, 10), updatedBy: user?.email || null };
   if (doc) await settings().update(doc.id, record);
   else await settings().insert(record);
   return value;
@@ -44,4 +48,14 @@ export async function setSchedule(schedule, user) {
 export async function nextSlotFor(service, takenIso, after = new Date()) {
   const schedule = await getSchedule();
   return nextQueueSlot(after, takenIso, undefined, schedule[service]);
+}
+
+/** The day posting targets started (first saved), or null if never set. */
+export async function targetsSince() {
+  try {
+    const [doc] = await settings().find({ key: "publishing-schedule" });
+    return doc?.since || doc?.createdAt?.slice(0, 10) || null;
+  } catch {
+    return null;
+  }
 }

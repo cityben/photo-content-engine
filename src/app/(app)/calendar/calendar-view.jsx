@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { api } from "@/lib/client-api";
 import { dateToZonedInput, dayKey, formatDateTime, formatTime, zonedToDate } from "@/lib/time";
+import { TargetsPanel } from "@/components/targets-panel";
 import { serviceInfo } from "@/lib/ui-labels";
 import { cn } from "@/lib/utils";
 
@@ -204,6 +205,7 @@ export function CalendarView({ postingEnabled, mode, initialSchedule, channels }
   return (
     <DndContext sensors={sensors} collisionDetection={collision} onDragStart={({ active }) => setDragging(active.data.current)} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
       <div className="flex flex-col gap-4">
+        <TargetsPanel reloadKey={reloads} onSchedule={postingEnabled ? scheduleReady : undefined} busyKey={busyKey} />
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-3 shadow-paper">
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" onClick={() => setCursor((c) => step(c, -1))} aria-label="Previous">

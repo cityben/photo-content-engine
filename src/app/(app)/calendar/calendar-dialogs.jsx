@@ -66,7 +66,7 @@ export function ScheduleDialog({ schedule, onSaved }) {
         <DialogHeader>
           <DialogTitle>Publishing days</DialogTitle>
           <DialogDescription>
-            When each channel posts (UK time). &quot;Next slot&quot; and Auto-fill use these; other days are shaded on the calendar. You can still drag a post to any time.
+            When each channel posts (UK time) and how many posts a posting day needs. &quot;Next slot&quot;, Auto-fill and the Targets panel use these; other days are shaded on the calendar. You can still drag a post to any time.
           </DialogDescription>
         </DialogHeader>
         {Object.keys(draft).map((service) => (
@@ -116,6 +116,22 @@ export function ScheduleDialog({ schedule, onSaved }) {
                 <Plus /> Time
               </Button>
             </div>
+            <label className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+              Target
+              <select
+                value={Math.min(draft[service].perDay || 1, draft[service].times.length)}
+                onChange={(e) => setDraft((d) => ({ ...d, [service]: { ...d[service], perDay: Number(e.target.value) } }))}
+                className="h-9 rounded-md bg-white px-2 text-sm shadow-paper"
+                aria-label={`${serviceInfo(service).label} posts per posting day`}
+              >
+                {draft[service].times.map((_, i) => (
+                  <option key={i} value={i + 1}>
+                    {i + 1}
+                  </option>
+                ))}
+              </select>
+              {`post${(draft[service].perDay || 1) > 1 ? "s" : ""} per posting day · ${draft[service].days.length * Math.min(draft[service].perDay || 1, draft[service].times.length)} a week`}
+            </label>
           </section>
         ))}
         <DialogFooter>

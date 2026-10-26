@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, Circle, Plus } from "lucide-react";
 
 import { auth } from "@/auth";
 import { PostRow } from "@/components/post-row";
+import { TargetsPanel } from "@/components/targets-panel";
 import { PageHeader } from "@/components/shell/app-shell";
 import { StatTile } from "@/components/stat-tile";
 import { Badge } from "@/components/ui/badge";
@@ -102,6 +103,8 @@ export default async function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      <TargetsPanel compact />
 
       {awaiting.length > 0 && (
         <Card>

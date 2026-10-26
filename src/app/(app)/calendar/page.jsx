@@ -17,7 +17,7 @@ export default async function CalendarPage() {
     <>
       <PageHeader
         title="Calendar"
-        description="What goes out when, on LinkedIn and Instagram. Drag to reschedule, drop approved posts onto open slots, or auto-fill. UK time."
+        description="What goes out when, and whether you’re hitting your posting targets. Set your posting days and posts per day, then drag approved posts onto open slots or auto-fill. UK time."
         actions={
           <Button asChild>
             <Link href="/jobs/new">

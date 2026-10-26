@@ -12,7 +12,7 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 | **Jobs → New job** | Upload up to 10 photos and a short write-up — or import a Word case study: AI reads it into every website case study field (type, company, location, postcode, duration, classification, services, the story sections, testimonial, SEO) using only the document's facts and lists what's missing; untick **Read with AI** to map by headings instead. Photos in the document are added. Then draft with AI, or create it without AI and write it yourself |
 | **Job** | Tabs for LinkedIn, Instagram, Case study, Google Business, Keywords, Tips, Photos & brief. Write by hand or with AI, rewrite a section with your own instructions, fill the case study from Word; the case study form mirrors the website editor's tabs and shows how complete it is, **approve** each part, then schedule posts (next queue slot or a set UK time) and send the case study to the website as a draft |
 | **Content pipeline** | Ideas board: Ideas → Planned → In progress → Published. Add from any keyword gap, keyword idea or AI question with one click, by hand, or let **Suggest ideas** plan 8–12 from your stored search, competitor, Search Console and review data. **Start a job** from an idea and the AI writes towards its target search; sending the case study marks it Published |
-| **Calendar** | Week, month and list views of every scheduled, published and failed post. Pick your publishing days and times per channel, drag approved posts from the "Ready to schedule" tray onto a slot, drag posts to reschedule (with Undo), or auto-fill the next free slots |
+| **Calendar** | **Posting targets** for today, the week, the month and the year: published vs booked vs target per channel, how far behind, streaks, year-end pace, when approved posts run out, and a ranked *Do next* list (schedule this approved post into today's open slot, approve that one, start a job from a pipeline idea). Week, month and list views of every scheduled, published and failed post. Pick your publishing days, times and posts per day per channel, drag approved posts from the "Ready to schedule" tray onto a slot, drag posts to reschedule (with Undo), or auto-fill the next free slots |
 | **Analytics** | Impressions, reactions, engagement per channel, top posts (Buffer); website users, Google clicks, average position, enquiries and visits from social (website reports) |
 | **Search & market** | *Your search*: real Search Console queries with position, change, CTR, a plain-English "why" and quick wins. *Competitors*: who Google sees as your competitors, niche leaders for your service keywords, traffic and visibility side by side over time, keyword gaps (what they rank for and you don't) and each competitor's best pages. *Keyword ideas*: UK demand around your services scored by volume, value, buying intent, difficulty and momentum. *Trends*: five-year Google Trends seasonality |
 | **Reputation & authority** | Google Business profile vs local rivals, Google and Trustpilot reviews (unanswered low ratings flagged), brand mentions across the web with tone, whether Google AI Overviews and ChatGPT cite you vs competitors, backlink authority, link prospects (sites linking to two competitors but not you) and page checks for your key pages |
@@ -92,7 +92,8 @@ src/
     ├── social/                     Buffer GraphQL client, sandbox, provider switch
     ├── website-api.js              Website v1 API: uploads, case studies, reports
     ├── seo/                        DataForSEO client (budget guard), market + reputation snapshots
-    ├── schedule.js / autofill.js   Publishing days and times, calendar auto-fill
+    ├── schedule.js / autofill.js   Publishing days, times and posts per day; calendar auto-fill
+    ├── targets.js                  Posting targets, pace and next actions
     ├── ideas.js / planner.js       Content pipeline and the AI planner
     ├── reports.js                  Monthly report data, CSV export
     ├── leads.js                    Lead search, pipeline, outreach drafts and approval
@@ -100,7 +101,7 @@ src/
     ├── store/                      MongoDB, or in-memory for local dev
     ├── media.js                    Vercel Blob or local photo storage
     └── time.js                     UK-time scheduling helpers
-tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market, ideas, reports, leads
+tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market, ideas, reports, leads, targets
 ```
 
 ### Updating website options

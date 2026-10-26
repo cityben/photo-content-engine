@@ -6,6 +6,7 @@ import { getSchedule, setSchedule } from "@/lib/schedule";
 const entry = z.object({
   days: z.array(z.number().int().min(0).max(6)).max(7),
   times: z.array(z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)).max(8),
+  perDay: z.number().int().min(1).max(8).optional(),
 });
 
 export const GET = route(async () => ({ schedule: await getSchedule() }));
