@@ -116,7 +116,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="company-profile" className="scroll-mt-6">
         <CardHeader>
           <CardTitle>Company profile</CardTitle>
           <CardDescription>Who the content is written for, and the website&apos;s case study lists. Stored in your database — nothing about the company lives in the code.</CardDescription>

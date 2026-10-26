@@ -1,15 +1,19 @@
 "use client";
 
+import Link from "next/link";
+
 import { useWebsiteOptions } from "@/components/options-provider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+// The lists come from Settings → Company profile; until it's filled in there's nothing to pick.
 function Choice({ id, label, value, onChange, items, placeholder, disabled }) {
+  const empty = !items.length;
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
-      <Select value={value || ""} onValueChange={onChange} disabled={disabled}>
+      <Select value={value || ""} onValueChange={onChange} disabled={disabled || empty}>
         <SelectTrigger id={id}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
@@ -21,6 +25,15 @@ function Choice({ id, label, value, onChange, items, placeholder, disabled }) {
           ))}
         </SelectContent>
       </Select>
+      {empty && (
+        <p className="text-xs text-gray-600">
+          No list yet —{" "}
+          <Link href="/settings#company-profile" className="font-medium text-primary underline underline-offset-4">
+            add the company profile in Settings
+          </Link>
+          .
+        </p>
+      )}
     </div>
   );
 }
