@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { gatewayCredits, modelCatalog } from "@/lib/models";
 import { setupStatus } from "@/lib/setup";
+import { checkStorage } from "@/lib/store";
 import { listChannels, socialMode, status as socialStatus } from "@/lib/social";
 import { checkWebsiteConnection, WEBSITE_URL } from "@/lib/website-api";
 
@@ -41,13 +42,28 @@ function Integration({ title, state, summary, children }) {
 }
 
 export default async function SettingsPage() {
-  const setup = Object.fromEntries((await setupStatus()).map((s) => [s.id, s]));
-  const [buffer, channels, website, catalog, credits] = await Promise.all([
-    socialStatus(),
-    listChannels().catch(() => []),
-    checkWebsiteConnection(),
-    modelCatalog(),
-    gatewayCredits(),
+  const setup = Object.fromEntries(
+    (await setupStatus().catch((error) => {
+      console.error("[settings] setup status failed:", error);
+      return [];
+    })).map((s) => [s.id, s])
+  );
+  const fallback = { done: false, detail: "Couldn't check.", fix: "" };
+  for (const id of ["ai", "storage", "photos", "buffer", "website", "auth"]) setup[id] ??= fallback;
+  // Each check fails on its own and shows its error, so one broken
+  // connection can't take the whole page down.
+  const settle = (promise, fallback, label) =>
+    promise.catch((error) => {
+      console.error(`[settings] ${label} failed:`, error);
+      return typeof fallback === "function" ? fallback(error) : fallback;
+    });
+  const [buffer, channels, website, catalog, credits, storage] = await Promise.all([
+    settle(socialStatus(), (e) => ({ mode: socialMode(), ok: false, error: e.message }), "buffer"),
+    settle(listChannels(), [], "channels"),
+    settle(checkWebsiteConnection(), (e) => ({ configured: true, ok: false, error: e.message }), "website"),
+    settle(modelCatalog(), (e) => ({ active: "", shortlist: [], others: [], usage: { inputTokens: 0, outputTokens: 0 }, error: e.message }), "models"),
+    settle(gatewayCredits(), null, "credits"),
+    settle(checkStorage(), (e) => ({ ok: false, error: e.message }), "storage"),
   ]);
   const scopes = website.me?.scopes || website.me?.key?.scopes;
 
@@ -146,7 +162,13 @@ export default async function SettingsPage() {
           </ol>
         </Integration>
 
-        <Integration title="Storage" state={setup.storage.done && setup.photos.done ? "ok" : "off"} summary="Where jobs and photos are kept.">
+        <Integration
+          title="Storage"
+          state={!storage.ok ? "error" : setup.storage.done && setup.photos.done ? "ok" : "off"}
+          summary="Where jobs and photos are kept."
+        >
+          {!storage.ok && <p className="rounded-md bg-destructive-soft p-3 text-destructive">{storage.error}</p>}
+          {storage.ok && storage.mode === "mongodb" && <p className="text-green-800">Database reachable ({storage.database}).</p>}
           <p>
             <span className="font-medium">Database:</span> {setup.storage.detail}
             {!setup.storage.done && <span className="block text-gray-600">{setup.storage.fix}</span>}

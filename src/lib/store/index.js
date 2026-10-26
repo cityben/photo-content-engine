@@ -80,10 +80,32 @@ function memoryCollection(name) {
 async function mongoDb() {
   if (!globalThis[MONGO_KEY]) {
     const { MongoClient } = await import("mongodb");
-    globalThis[MONGO_KEY] = new MongoClient(process.env.MONGODB_URI).connect();
+    globalThis[MONGO_KEY] = new MongoClient(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 8000,
+      appName: "photo-content-engine",
+    }).connect();
   }
-  const client = await globalThis[MONGO_KEY];
-  return client.db(process.env.MONGODB_DB_NAME || "photo-engine");
+  try {
+    const client = await globalThis[MONGO_KEY];
+    return client.db(process.env.MONGODB_DB_NAME || "photo-engine");
+  } catch (error) {
+    // Don't cache a failed connection — the next request tries again.
+    globalThis[MONGO_KEY] = null;
+    console.error("[store] MongoDB connection failed:", error.message);
+    throw new Error(`Can't reach the database (${error.message}). In MongoDB Atlas, check Network Access allows Vercel (0.0.0.0/0).`);
+  }
+}
+
+/** Is the database reachable? For Settings. */
+export async function checkStorage() {
+  if (storageMode() !== "mongodb") return { ok: true, mode: "memory" };
+  try {
+    const db = await mongoDb();
+    await db.command({ ping: 1 });
+    return { ok: true, mode: "mongodb", database: db.databaseName };
+  } catch (error) {
+    return { ok: false, mode: "mongodb", error: error.message };
+  }
 }
 
 function fromMongo(doc) {

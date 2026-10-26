@@ -114,7 +114,12 @@ export function estimateCost(model, usage = TYPICAL_JOB) {
 
 /** Average real token use per full generation, from saved jobs. */
 export async function averageJobUsage() {
-  const jobs = await collection("jobs").find({});
+  let jobs = [];
+  try {
+    jobs = await collection("jobs").find({});
+  } catch (error) {
+    console.error("[models] Couldn't read jobs for usage:", error.message);
+  }
   const runs = jobs.flatMap((j) => j.aiRuns || []).filter((r) => r.full && r.inputTokens && r.outputTokens);
   if (runs.length < 2) return { ...TYPICAL_JOB, measured: false, runs: runs.length };
   const avg = (k) => Math.round(runs.reduce((s, r) => s + r[k], 0) / runs.length);
