@@ -285,3 +285,31 @@ You are planning content for a building services contractor (air conditioning, m
     run: { model: modelId, costUsd: await runCost(modelId, usage, providerMetadata), at: new Date().toISOString() },
   };
 }
+
+/* --- Monthly report ------------------------------------------------------- */
+
+const reportSummarySchema = z.object({
+  headline: z.string().describe("One line, the month in a sentence, e.g. 'Search clicks up 18%; two case studies shipped; reviews flat'"),
+  summary: z.string().describe("4-6 sentences for the directors: what moved, why, and what it means for enquiries"),
+  wins: z.array(z.string()).describe("2-5 specific wins with numbers"),
+  concerns: z.array(z.string()).describe("0-4 specific problems or risks with numbers; empty if none"),
+  nextMonth: z.array(recommendationSchema).describe("4-6 prioritised actions for next month"),
+});
+
+/**
+ * Executive summary for a month of report data. Only states what the data
+ * shows; missing sources are said to be missing. Returns { summary, run }.
+ */
+export async function generateReportSummary(data) {
+  const modelId = await getActiveModel();
+  const { output, usage, providerMetadata } = await generateText({
+    model: modelId,
+    system: `${VOICE}
+
+You write the monthly marketing report for the directors of a building services contractor. Use only numbers in the data; never invent figures. If a source is missing or simulated (sandbox), say so plainly. Compare with the previous period where the data gives one. Tie actions to enquiries.`,
+    maxOutputTokens: 4000,
+    output: Output.object({ schema: reportSummarySchema }),
+    prompt: `Report data for ${data.range.label}${data.range.partial ? " (month to date)" : ""} (JSON):\n${JSON.stringify(data, null, 1).slice(0, 40000)}`,
+  });
+  return { summary: output, run: { model: modelId, costUsd: await runCost(modelId, usage, providerMetadata), at: new Date().toISOString() } };
+}

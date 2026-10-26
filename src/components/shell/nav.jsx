@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   CalendarDays,
+  FileText,
   FolderOpen,
   KanbanSquare,
   LayoutDashboard,
@@ -25,6 +26,7 @@ export const NAV = [
   { href: "/keywords", label: "Search & market", icon: Search },
   { href: "/reputation", label: "Reputation & authority", icon: ShieldCheck },
   { href: "/insights", label: "Growth insights", icon: Lightbulb },
+  { href: "/reports", label: "Monthly report", icon: FileText },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

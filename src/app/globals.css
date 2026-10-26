@@ -89,3 +89,28 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+/* Printing (Reports → Download PDF): white paper, no shadows, no app chrome. */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+  body {
+    background: #fff;
+  }
+  main {
+    max-width: none;
+    padding: 0;
+  }
+  .shadow-paper {
+    box-shadow: none !important;
+    outline: 1px solid #e5e7eb;
+  }
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+}

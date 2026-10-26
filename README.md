@@ -17,6 +17,7 @@ Internal tool for Acme Ltd. Next.js 16 (App Router), shadcn/ui, AI SDK via the V
 | **Search & market** | *Your search*: real Search Console queries with position, change, CTR, a plain-English "why" and quick wins. *Competitors*: who Google sees as your competitors, niche leaders for your service keywords, traffic and visibility side by side over time, keyword gaps (what they rank for and you don't) and each competitor's best pages. *Keyword ideas*: UK demand around your services scored by volume, value, buying intent, difficulty and momentum. *Trends*: five-year Google Trends seasonality |
 | **Reputation & authority** | Google Business profile vs local rivals, Google and Trustpilot reviews (unanswered low ratings flagged), brand mentions across the web with tone, whether Google AI Overviews and ChatGPT cite you vs competitors, backlink authority, link prospects (sites linking to two competitors but not you) and page checks for your key pages |
 | **Growth insights** | AI reads all of the above and gives a summary, a prioritised to-do list and content ideas |
+| **Monthly report** | One month on one page: website KPIs with change vs the previous period, top queries and landing pages, social, work shipped (jobs, case studies, pipeline), market and reputation snapshots, tool running costs. **Write summary** adds an AI directors' summary (headline, wins, concerns, next month's actions) from those numbers only. **Download PDF** (print layout) and **CSV** exports |
 | **Settings** | AI model picker (scores, live prices, cost per job, gateway credit) and live connection checks for Buffer, the website, storage and sign-in |
 
 ### Where the data comes from
@@ -91,11 +92,12 @@ src/
     ├── seo/                        DataForSEO client (budget guard), market + reputation snapshots
     ├── schedule.js / autofill.js   Publishing days and times, calendar auto-fill
     ├── ideas.js / planner.js       Content pipeline and the AI planner
+    ├── reports.js                  Monthly report data, CSV export
     ├── growth.js                   Analytics + insights data
     ├── store/                      MongoDB, or in-memory for local dev
     ├── media.js                    Vercel Blob or local photo storage
     └── time.js                     UK-time scheduling helpers
-tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market, ideas
+tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market, ideas, reports
 ```
 
 ### Updating website options
@@ -123,6 +125,7 @@ tests/                              Jest: Buffer, website, sandbox, time, AI, mo
 | ✅ | Calendar publishing days, drag to schedule/reschedule, auto-fill |
 | ✅ | Competitors, keyword gaps, ideas, trends, reviews, mentions, AI visibility, backlinks, page checks (DataForSEO) |
 | ✅ | Content pipeline linked to jobs and search data |
-| Next | Monthly report with PDF/CSV export, leads and outreach |
+| ✅ | Monthly report with AI summary, PDF and CSV |
+| Next | Leads and outreach |
 
 Private — Acme Ltd only.
