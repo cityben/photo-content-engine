@@ -17,19 +17,34 @@ export function storageMode() {
   return process.env.MONGODB_URI ? "mongodb" : "memory";
 }
 
+/** Values at a dotted path; like MongoDB, arrays along the way are searched. */
+function valuesAt(doc, path) {
+  let values = [doc];
+  for (const key of path.split(".")) {
+    values = values.flatMap((v) => {
+      const next = v?.[key];
+      return Array.isArray(next) && key !== path.split(".").at(-1) ? next : [next];
+    });
+    values = values.flatMap((v) => (Array.isArray(v) ? [v, ...v] : [v]));
+  }
+  return values;
+}
+
 function matches(doc, filter = {}) {
   return Object.entries(filter).every(([key, value]) => {
-    const actual = key.split(".").reduce((o, k) => o?.[k], doc);
-    if (value && typeof value === "object" && !Array.isArray(value)) {
-      if ("$in" in value) return value.$in.includes(actual);
-      if ("$gte" in value || "$lte" in value) {
-        return (
-          (value.$gte === undefined || actual >= value.$gte) &&
-          (value.$lte === undefined || actual <= value.$lte)
-        );
+    const actuals = valuesAt(doc, key);
+    return actuals.some((actual) => {
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        if ("$in" in value) return value.$in.includes(actual);
+        if ("$gte" in value || "$lte" in value) {
+          return (
+            (value.$gte === undefined || actual >= value.$gte) &&
+            (value.$lte === undefined || actual <= value.$lte)
+          );
+        }
       }
-    }
-    return actual === value;
+      return actual === value;
+    });
   });
 }
 

@@ -3,19 +3,21 @@ import { Plus } from "lucide-react";
 
 import { PageHeader } from "@/components/shell/app-shell";
 import { Button } from "@/components/ui/button";
-import { postingEnabled, socialMode } from "@/lib/social";
+import { getSchedule } from "@/lib/schedule";
+import { listChannels, postingEnabled, socialMode } from "@/lib/social";
 
 import { CalendarView } from "./calendar-view";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Calendar — Content Engine" };
 
-export default function CalendarPage() {
+export default async function CalendarPage() {
+  const [schedule, channels] = await Promise.all([getSchedule(), listChannels().catch(() => [])]);
   return (
     <>
       <PageHeader
         title="Calendar"
-        description="Everything scheduled and published on LinkedIn and Instagram. Click a post to edit, reschedule or delete it. Times are UK time."
+        description="What goes out when, on LinkedIn and Instagram. Drag to reschedule, drop approved posts onto open slots, or auto-fill. UK time."
         actions={
           <Button asChild>
             <Link href="/jobs/new">
@@ -24,7 +26,7 @@ export default function CalendarPage() {
           </Button>
         }
       />
-      <CalendarView postingEnabled={postingEnabled()} mode={socialMode()} />
+      <CalendarView postingEnabled={postingEnabled()} mode={socialMode()} initialSchedule={schedule} channels={channels} />
     </>
   );
 }

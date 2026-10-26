@@ -64,3 +64,30 @@ describe('approval gate', () => {
     expect(updated.approvals.caseStudy).toBeNull();
   });
 });
+
+describe('calendar: ready tray, autofill, schedule', () => {
+  const { readyToSchedule } = require('../src/lib/jobs');
+  const { planAutofill, applyAutofill } = require('../src/lib/autofill');
+  const { setSchedule } = require('../src/lib/schedule');
+
+  it('lists approved, unscheduled posts and autofills them into publishing slots', async () => {
+    await setSchedule({ linkedin: { days: [2], times: ['09:00'] }, instagram: { days: [4], times: ['13:00'] } }, user);
+    const job = await createJob({ title: 'Tray job', writeUp: 'w', content: structuredClone(content), user });
+    await setApproval(job.id, 'linkedin', true, user);
+    await setApproval(job.id, 'instagram', true, user);
+    // Instagram needs a photo in the sandbox
+    await saveJobEdits(job.id, { images: [{ url: '/api/media/00000001-0000-0000-0000-000000000000', public: false }] });
+
+    const ready = (await readyToSchedule()).filter((i) => i.jobId === job.id);
+    expect(ready.map((i) => i.service).sort()).toEqual(['instagram', 'linkedin']);
+
+    const plan = (await planAutofill()).filter((i) => i.jobId === job.id);
+    const li = plan.find((p) => p.service === 'linkedin');
+    const day = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(li.dueAt));
+    expect(day).toMatch(/^Tue,? 09:00$/);
+
+    const results = (await applyAutofill()).filter((r) => r.jobId === job.id);
+    expect(results.every((r) => r.ok)).toBe(true);
+    expect((await readyToSchedule()).filter((i) => i.jobId === job.id)).toEqual([]);
+  });
+});

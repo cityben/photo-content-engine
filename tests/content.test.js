@@ -21,3 +21,14 @@ describe('main building photo', () => {
     expect(mainImageOf({ images: [img(1)], mainImage: img(9).url })).toEqual(img(1));
   });
 });
+
+describe('memory store queries', () => {
+  const { collection } = require('../src/lib/store');
+  it('matches inside arrays like MongoDB', async () => {
+    const c = collection('test-arrays');
+    await c.insert({ name: 'a', posts: [{ postId: 'p1' }, { postId: 'p2' }] });
+    await c.insert({ name: 'b', posts: [] });
+    expect((await c.find({ 'posts.postId': 'p2' })).map((d) => d.name)).toEqual(['a']);
+    expect((await c.find({ name: { $in: ['b'] } })).map((d) => d.name)).toEqual(['b']);
+  });
+});

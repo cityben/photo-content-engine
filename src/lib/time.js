@@ -79,19 +79,29 @@ export function formatTime(date, timeZone = APP_TIMEZONE) {
   );
 }
 
-/** Default queue slots (UK time), weekdays. Mirrors a sensible B2B Buffer schedule. */
+/** Default publishing slots (UK time), weekdays. */
 export const QUEUE_SLOTS = ["08:30", "12:30", "17:30"];
+export const DEFAULT_DAYS = [1, 2, 3, 4, 5]; // 0 = Sunday … 6 = Saturday
 
-/** Next free weekday slot after `after`, skipping times already in `taken` (ISO strings). */
-export function nextQueueSlot(after = new Date(), taken = [], timeZone = APP_TIMEZONE) {
+/** Weekday (0 = Sunday) of a "YYYY-MM-DD" day key. */
+export function weekdayOf(key) {
+  return new Date(`${key}T12:00:00Z`).getUTCDay();
+}
+
+/**
+ * Next free publishing slot after `after`, skipping times in `taken` (ISO
+ * strings). `schedule` = { days: [0-6], times: ["08:30", …] } in `timeZone`.
+ */
+export function nextQueueSlot(after = new Date(), taken = [], timeZone = APP_TIMEZONE, schedule = {}) {
+  const days = schedule.days?.length ? schedule.days : DEFAULT_DAYS;
+  const times = [...(schedule.times?.length ? schedule.times : QUEUE_SLOTS)].sort();
   const takenSet = new Set(taken.map((t) => new Date(t).getTime()));
   const start = new Date(after);
-  for (let dayOffset = 0; dayOffset < 60; dayOffset++) {
+  for (let dayOffset = 0; dayOffset < 120; dayOffset++) {
     const day = new Date(start.getTime() + dayOffset * 86400000);
     const key = dayKey(day, timeZone);
-    const weekday = new Date(`${key}T12:00:00Z`).getUTCDay();
-    if (weekday === 0 || weekday === 6) continue;
-    for (const slot of QUEUE_SLOTS) {
+    if (!days.includes(weekdayOf(key))) continue;
+    for (const slot of times) {
       const when = zonedToDate(`${key}T${slot}`, timeZone);
       if (when.getTime() > start.getTime() + 5 * 60000 && !takenSet.has(when.getTime())) {
         return when;

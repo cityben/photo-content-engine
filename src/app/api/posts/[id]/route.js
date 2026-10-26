@@ -1,4 +1,5 @@
 import { notFound, readJson, route } from "@/lib/api";
+import { forgetPost } from "@/lib/jobs";
 import { deletePost, editPost, getPost } from "@/lib/social";
 import { postEditSchema } from "@/lib/schemas";
 
@@ -15,5 +16,6 @@ export const PATCH = route(async ({ request, params }) => {
 
 export const DELETE = route(async ({ params }) => {
   await deletePost(params.id);
+  await forgetPost(params.id);
   return { ok: true };
 });

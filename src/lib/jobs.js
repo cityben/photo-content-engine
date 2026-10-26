@@ -7,7 +7,8 @@ import { generateJobContent, SECTIONS } from "@/lib/ai";
 import { cached } from "@/lib/cache";
 import { APPROVABLE, hasSubstance, orderedImages, SECTION_LABEL } from "@/lib/content";
 import { deleteImage } from "@/lib/media";
-import { createPost, listChannels, socialMode } from "@/lib/social";
+import { nextSlotFor } from "@/lib/schedule";
+import { createPost, listChannels, listPosts, socialMode } from "@/lib/social";
 import { collection } from "@/lib/store";
 import { createCaseStudyDraft, getSearchQueries, websiteConfigured } from "@/lib/website-api";
 
@@ -209,11 +210,24 @@ export async function scheduleForJob(id, { channelId, dueAt, imageUrls }) {
   const caseStudyUrl = job.website?.url;
   const comment = firstComment?.replace("{{case_study_url}}", caseStudyUrl || "").trim();
 
+  // "Next slot": the app's publishing schedule picks the time, skipping
+  // slots already booked on this channel.
+  let when = dueAt;
+  if (!when) {
+    const booked = await listPosts({
+      start: new Date().toISOString(),
+      end: new Date(Date.now() + 120 * 86400000).toISOString(),
+      statuses: ["scheduled", "sending"],
+      channelIds: [channel.id],
+    });
+    when = (await nextSlotFor(channel.service, booked.map((p) => p.dueAt))).toISOString();
+  }
+
   const post = await createPost({
     channel,
     text,
     images: channel.service === "instagram" || images.length ? images : [],
-    dueAt,
+    dueAt: when,
     firstComment: comment || undefined,
     job,
   });
@@ -251,4 +265,32 @@ export async function sendCaseStudy(id) {
 
   await updateJob(id, { website: { ...result, sentAt: new Date().toISOString() } });
   return result;
+}
+
+/** A post was deleted: drop it from its job so the job shows as ready again. */
+export async function forgetPost(postId) {
+  const [job] = await jobs().find({ "posts.postId": postId });
+  if (job) await updateJob(job.id, { posts: job.posts.filter((p) => p.postId !== postId) });
+}
+
+/** Approved LinkedIn/Instagram content with nothing scheduled yet — the calendar's tray. */
+export async function readyToSchedule() {
+  const all = await listJobs();
+  const items = [];
+  for (const job of all) {
+    for (const service of ["linkedin", "instagram"]) {
+      if (!job.approvals?.[service] || !hasSubstance(service, job.content?.[service])) continue;
+      if ((job.posts || []).some((p) => p.service === service)) continue;
+      const main = orderedImages(job)[0];
+      items.push({
+        jobId: job.id,
+        jobTitle: job.title,
+        service,
+        text: defaultPostText(job, service),
+        image: main?.url || null,
+        approvedAt: job.approvals[service].at,
+      });
+    }
+  }
+  return items.sort((a, b) => (a.approvedAt < b.approvedAt ? -1 : 1));
 }
