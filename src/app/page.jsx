@@ -1,18 +1,16 @@
-import { ContentWorkspace } from "@/components/content-workspace";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+import { auth } from "@/auth";
+import { ContentWorkspace } from "@/components/content-workspace";
+import { SiteHeader } from "@/components/site-header";
+
+export default async function Home() {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
   return (
     <div className="min-h-dvh">
-      <header className="bg-white shadow-paper">
-        <div className="mx-auto flex max-w-[1240px] items-center gap-3 px-4 py-4 sm:px-6">
-          <span aria-hidden className="h-6 w-1.5 rounded-full bg-marker" />
-          <span className="text-sm font-bold uppercase tracking-wider text-primary">
-            Acme Ltd
-          </span>
-          <span className="text-sm text-gray-400">/</span>
-          <span className="text-sm text-gray-600">Photo Content Engine</span>
-        </div>
-      </header>
+      <SiteHeader user={session.user} />
 
       <main className="mx-auto flex max-w-[1240px] flex-col gap-8 px-4 py-8 sm:px-6 sm:py-12">
         <div className="flex max-w-[68ch] flex-col gap-2">

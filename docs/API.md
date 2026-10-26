@@ -13,7 +13,13 @@ https://photo-engine.vercel.app/api (Production)
 
 ## Authentication
 
-The API routes are not authenticated yet; they are called directly by the web UI. Protect production deployments with Vercel Deployment Protection (or your SSO) so only your team can reach them.
+All routes require a signed-in session (the encrypted `authjs.session-token` cookie set when you sign in through the web UI). Requests without one get:
+
+```json
+{ "error": "Sign in required" }
+```
+
+with status `401`. The routes are designed to be called from the web UI; there are no separate API keys for scripts yet.
 
 AI calls are made server-side through the Vercel AI Gateway (`AI_GATEWAY_API_KEY`, or the project's OIDC token on Vercel).
 
@@ -142,6 +148,7 @@ curl -X POST http://localhost:3000/api/generate-content \
 |------|---------|
 | 200 | Success |
 | 400 | Bad request (missing/invalid data) |
+| 401 | Not signed in |
 | 500 | Server error |
 
 ---
@@ -233,6 +240,8 @@ Not enforced by this app yet. Each `/generate-content` call makes 9 AI Gateway r
 ---
 
 ## Code Examples
+
+> These examples need a session cookie from a signed-in browser (copy `authjs.session-token` from your browser's dev tools and send it as a `Cookie` header). Script-friendly API keys are not built yet.
 
 ### JavaScript/Node.js
 

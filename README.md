@@ -50,6 +50,7 @@ cp .env.example .env.local
 ```
 
 Then add your API keys:
+- `AUTH_SECRET` plus Microsoft 365 or Google Workspace sign-in keys — see [Sign-in](docs/SETUP.md#sign-in)
 - `AI_GATEWAY_API_KEY` — from vercel.com → AI Gateway → API Keys (not needed on Vercel deployments, which authenticate with OIDC)
 - `BUFFER_API_TOKEN` — from buffer.com/developers
 - `BUFFER_PROFILE_IDS` — comma-separated LinkedIn, Instagram, Twitter profile IDs (in that order)
@@ -88,26 +89,28 @@ curl -X POST http://localhost:3000/api/generate-content \
 
 ## Deployment
 
-### Deploy to Vercel (Free)
+Deploy on Vercel and point a subdomain such as `content.acme.co.uk` at it. Step-by-step: [docs/SETUP.md → Put it on a domain](docs/SETUP.md#put-it-on-a-domain).
 
-```bash
-npm i -g vercel
-vercel
-```
+## Security
 
-Add the environment variables above in the Vercel project settings. With Vercel's OIDC enabled (the default), `AI_GATEWAY_API_KEY` is not required in production.
-
-> **Note:** the API routes have no authentication yet. Turn on Vercel Deployment Protection (or put the app behind your SSO) so only your team can spend AI Gateway credits and post to Buffer.
+- Every page and API route requires sign-in with a company Microsoft 365 or Google Workspace account. No passwords are stored by this app.
+- Access is limited to `AUTH_ALLOWED_DOMAINS` (default `example.co.uk`) plus any addresses in `AUTH_ALLOWED_EMAILS`. Microsoft sign-ins must also come from your own tenant; Google sign-ins must be verified accounts in your Workspace.
+- Sessions are encrypted cookies that expire after 12 hours.
+- API keys (AI Gateway, Buffer, website) stay on the server and never reach the browser.
 
 ## Project Structure
 
 ```
 src/
+├── auth.js                          # Auth.js config (Microsoft 365 / Google)
+├── proxy.js                         # Requires sign-in on every route
 ├── app/
 │   ├── page.jsx                     # Upload + content UI
+│   ├── login/page.jsx               # Sign-in page
 │   ├── layout.jsx                   # Root layout, Inter font, toasts
 │   ├── globals.css                  # Paper design tokens (Tailwind v4)
 │   └── api/
+│       ├── auth/[...nextauth]/route.js  # Sign-in callbacks
 │       ├── generate-content/route.js  # Photo → analysis → 7 formats + keywords
 │       └── buffer/route.js            # Buffer status (GET) and queue a post (POST)
 ├── components/
@@ -118,6 +121,8 @@ src/
 │   └── buffer-preview.jsx           # Editable post preview + send to Buffer
 └── lib/
     ├── ai.js                        # Vercel AI Gateway calls (AI SDK)
+    ├── access.js                    # Who may sign in
+    ├── session.js                   # Session check for API routes
     ├── content-generator.js         # Prompt templates for each format
     ├── formats.js                   # Format definitions, copy/export text
     ├── buffer.js                    # Buffer.com integration
@@ -130,7 +135,8 @@ docs/
 
 tests/
 ├── photo-generation.test.js
-└── formats.test.js
+├── formats.test.js
+└── access.test.js
 ```
 
 ## Configuration

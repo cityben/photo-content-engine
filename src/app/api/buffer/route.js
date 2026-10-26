@@ -3,6 +3,7 @@ import {
   getBufferProfiles,
   getProfileIdForPlatform,
 } from "@/lib/buffer";
+import { requireUser } from "@/lib/session";
 
 const PLATFORMS = ["linkedin", "instagram", "twitter"];
 
@@ -14,6 +15,9 @@ function isPostingEnabled() {
  * Report whether Buffer is configured, without exposing any secret values.
  */
 export async function GET() {
+  const { response } = await requireUser();
+  if (response) return response;
+
   const configured = Boolean(process.env.BUFFER_API_TOKEN);
   const profiles = Object.fromEntries(
     PLATFORMS.map((p) => [p, Boolean(getProfileIdForPlatform(p))])
@@ -36,6 +40,9 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  const { user, response } = await requireUser();
+  if (response) return response;
+
   if (!isPostingEnabled()) {
     return Response.json(
       { error: "Buffer posting is disabled. Set ENABLE_BUFFER_POSTING=true to enable it." },
@@ -71,6 +78,7 @@ export async function POST(request) {
   }
 
   try {
+    console.log(`[buffer] ${user.email} queueing ${platform} post`);
     const result = await createBufferDraft({
       platform,
       text: content,

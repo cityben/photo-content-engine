@@ -1,11 +1,15 @@
 import { analyzeImage, generateAllContent } from "@/lib/ai";
 import { validateImageQuality } from "@/lib/image-analyzer";
+import { requireUser } from "@/lib/session";
 import { createProjectDraft } from "@/lib/website-api";
 
 // One vision call plus eight parallel text calls.
 export const maxDuration = 120;
 
 export async function POST(request) {
+  const { user, response } = await requireUser();
+  if (response) return response;
+
   let body;
   try {
     body = await request.json();
@@ -27,7 +31,7 @@ export async function POST(request) {
   }
 
   try {
-    console.log("[generate-content] Analysing image with metadata:", metadata);
+    console.log(`[generate-content] ${user.email} analysing image with metadata:`, metadata);
     const analysis = await analyzeImage(imageData);
 
     const content = await generateAllContent(analysis, metadata);
