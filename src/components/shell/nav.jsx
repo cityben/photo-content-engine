@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   CalendarDays,
+  Crop,
   Crosshair,
   FileText,
   FolderOpen,
@@ -25,6 +26,7 @@ export const NAV = [
   { href: "/jobs", label: "Jobs", icon: FolderOpen },
   { href: "/ideas", label: "Content pipeline", icon: KanbanSquare },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/sizer", label: "Social sizer", icon: Crop },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/keywords", label: "Search & market", icon: Search },
   { href: "/reputation", label: "Reputation & authority", icon: ShieldCheck },

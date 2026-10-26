@@ -14,6 +14,7 @@ Internal marketing tool for a building services company. Next.js 16 (App Router)
 | **Job** | Tabs for LinkedIn, Instagram, Case study, Google Business, Keywords, Tips, Photos & brief. Write by hand or with AI, rewrite a section with your own instructions, fill the case study from Word; the case study form mirrors the website editor's tabs and shows how complete it is, **approve** each part, then schedule posts (next queue slot or a set UK time) and send the case study to the website as a draft |
 | **Content pipeline** | Ideas board: Ideas → Planned → In progress → Published. Add from any keyword gap, keyword idea or AI question with one click, by hand, or let **Suggest ideas** plan 8–12 from your stored search, competitor, Search Console and review data. **Start a job** from an idea and the AI writes towards its target search; sending the case study marks it Published |
 | **Calendar** | **Posting targets** for today, the week, the month and the year: published vs booked vs target per channel, how far behind, streaks, year-end pace, when approved posts run out, and a ranked *Do next* list (schedule this approved post into today's open slot, approve that one, start a job from a pipeline idea). Week, month and list views of every scheduled, published and failed post. Pick your publishing days, times and posts per day per channel, drag approved posts from the "Ready to schedule" tray onto a slot, drag posts to reschedule (with Undo), or auto-fill the next free slots |
+| **Social sizer** | Drop in photos (or open them from a job) and set one subject point per photo; every chosen size — LinkedIn, Instagram, Facebook, Google Business, X, TikTok, YouTube, Pinterest — is cut from the original around it, and a bright box shows the part that survives every cut. Per size: drag to reposition, zoom, switch to *Fit whole photo* (blurred, white or dark background), or **Extend** with AI (one image call per shape through the gateway, cost shown) to generate the missing edges instead of cropping. Previews are the real output size. Export JPEG, PNG or WebP at a chosen quality, one at a time, all as a ZIP, or add a cut back to the job's photos. Photos stay in the browser unless you extend or add them to a job |
 | **Analytics** | Impressions, reactions, engagement per channel, top posts (Buffer); website users, Google clicks, average position, enquiries and visits from social (website reports) |
 | **Search & market** | *Your search*: real Search Console queries with position, change, CTR, a plain-English "why" and quick wins. *Competitors*: who Google sees as your competitors, niche leaders for your service keywords, traffic and visibility side by side over time, keyword gaps (what they rank for and you don't) and each competitor's best pages. *Keyword ideas*: UK demand around your services scored by volume, value, buying intent, difficulty and momentum. *Trends*: five-year Google Trends seasonality |
 | **Reputation & authority** | Google Business profile vs local rivals, Google and Trustpilot reviews (unanswered low ratings flagged), brand mentions across the web with tone, whether Google AI Overviews and ChatGPT cite you vs competitors, backlink authority, link prospects (sites linking to two competitors but not you) and page checks for your key pages |
@@ -95,6 +96,7 @@ src/
     ├── seo/                        DataForSEO client (budget guard), market + reputation snapshots
     ├── schedule.js / autofill.js   Publishing days, times and posts per day; calendar auto-fill
     ├── targets.js                  Posting targets, pace and next actions
+    ├── sizer.js / sizer-models.js  Social sizes, crop/fit/extend geometry; AI extend models
     ├── agent.js                    Growth check: checks, costs, brief, checklist, weekly run
     ├── ideas.js / planner.js       Content pipeline and the AI planner
     ├── reports.js                  Monthly report data, CSV export
@@ -103,7 +105,7 @@ src/
     ├── store/                      MongoDB, or in-memory for local dev
     ├── media.js                    Vercel Blob or local photo storage
     └── time.js                     UK-time scheduling helpers
-tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market, ideas, reports, leads, targets, agent
+tests/                              Jest: Buffer, website, sandbox, time, AI, models, auth, passwords, market, ideas, reports, leads, targets, agent, sizer
 ```
 
 ### Company profile

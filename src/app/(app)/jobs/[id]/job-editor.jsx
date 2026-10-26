@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CheckCircle2, Copy, Loader2, PenLine, RotateCcw, Save, Sparkles, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Check, CheckCircle2, Copy, Crop, Loader2, PenLine, RotateCcw, Save, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Recommendations, SeoPanel } from "@/components/insight-panels";
@@ -433,6 +434,11 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
                     markDirty("brief");
                   }}
                 />
+                {job.images?.length > 0 && (
+                  <Link href={`/sizer?job=${job.id}`} className="inline-flex w-fit items-center gap-2 text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring">
+                    <Crop className="size-4" /> Size these photos for every platform
+                  </Link>
+                )}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="brief-title">Job title</Label>
                   <Input id="brief-title" value={brief.title} onChange={(e) => { setBrief((b) => ({ ...b, title: e.target.value })); markDirty("brief"); }} />
