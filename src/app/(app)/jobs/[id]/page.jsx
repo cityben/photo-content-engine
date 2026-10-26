@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 
 export default async function JobPage({ params, searchParams }) {
   const { id } = await params;
-  const startManual = (await searchParams)?.manual === "1";
+  const query = (await searchParams) || {};
+  const startManual = query.manual === "1";
   const job = await getJob(id);
   if (!job) notFound();
 
@@ -41,6 +42,7 @@ export default async function JobPage({ params, searchParams }) {
         websiteConnected={await websiteConfigured()}
         models={{ active: catalog.active, shortlist: catalog.shortlist }}
         startManual={startManual}
+        startTab={typeof query.tab === "string" ? query.tab : null}
       />
     </>
   );

@@ -162,15 +162,15 @@ export function TargetsPanel({ reloadKey = 0, onSchedule, busyKey, compact = fal
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Do next</p>
               <ol className="flex flex-col gap-2">
                 {actions.slice(0, compact ? 3 : 6).map((a) => (
-                  <li key={a.id} className="flex flex-col gap-2 rounded-lg bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex min-w-0 gap-2.5">
+                  <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 p-3">
+                    <div className="flex min-w-0 flex-[1_1_16rem] gap-2.5">
                       <span aria-hidden className={cn("mt-1.5 size-2 shrink-0 rounded-full", DOT[a.severity])} />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-gray-900">{a.title}</p>
                         <p className="text-xs leading-5 text-gray-600">{a.detail}</p>
                       </div>
                     </div>
-                    <div className="min-w-0 sm:shrink-0">
+                    <div className="min-w-0 max-w-full">
                       <ActionButton a={a} onSchedule={onSchedule} busy={busyKey === (a.item && `${a.item.jobId}:${a.item.service}`)} />
                     </div>
                   </li>

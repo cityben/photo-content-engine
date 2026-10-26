@@ -113,6 +113,10 @@ What each page uses:
 
 Focus → **Run it automatically** runs the growth check every Monday at 06:30 UTC (`vercel.json` → `/api/cron/agent`). Add `CRON_SECRET` (any long random string) in Vercel and redeploy — Vercel sends it with each scheduled call, and the route refuses anything without it. Paid refreshes in the chosen preset still respect `DATAFORSEO_MONTHLY_BUDGET`.
 
+Review → Autopilot → **Run every Monday at 08:00** drafts from the content pipeline every Monday at 07:00 UTC (`/api/cron/autopilot`), after the growth check. It uses the same `CRON_SECRET`. Each run costs one AI planning call (if switched on) plus one writing call per draft; the estimate is shown next to **Run now**. Drafts are never sent anywhere until a person approves them in Review.
+
+Blog posts go to the website's News section (`/api/v1/blogs`) as unpublished drafts. The API key needs `content:write` and `media:write`. The website requires a title, summary, article, category and header photo; it writes the SEO fields itself.
+
 ## Other systems (API keys)
 
 To let another project create jobs through `POST /api/v1/jobs`:

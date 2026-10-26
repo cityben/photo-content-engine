@@ -61,7 +61,8 @@ async function checkWork() {
     }
   }
   const ready = await readyToSchedule();
-  const recent = jobs.filter((j) => ageDays(j.createdAt) <= 30).length;
+  // Drafts from ideas aren't finished work: they don't count as new jobs.
+  const recent = jobs.filter((j) => j.kind !== "idea" && ageDays(j.createdAt) <= 30).length;
   if (recent === 0) findings.push(f("no-new-jobs", "high", "No new jobs in 30 days", "Content runs on real jobs. Add one with photos and a short write-up — it becomes posts, a case study and search content.", "/jobs/new"));
   return { headline: `${recent} new job${recent === 1 ? "" : "s"} in 30 days · ${ready.length} approved post${ready.length === 1 ? "" : "s"} ready`, findings };
 }

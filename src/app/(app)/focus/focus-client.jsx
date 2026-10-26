@@ -160,7 +160,7 @@ function Checklist({ initial }) {
         <ul className="flex flex-col gap-2">
           {shown.map((i) => (
             <li key={i.id} className={cn("flex items-start gap-3 rounded-lg bg-gray-50 p-3", i.status === "done" && "opacity-60")}>
-              <input type="checkbox" checked={i.status === "done"} onChange={(e) => set(i, e.target.checked ? "done" : "open")} aria-label={`Mark “${i.title}” done`} className="mt-0.5 size-4 shrink-0 accent-[#003157]" />
+              <input type="checkbox" checked={i.status === "done"} onChange={(e) => set(i, e.target.checked ? "done" : "open")} aria-label={`Mark “${i.title}” done`} className="mt-0.5 size-4 shrink-0 accent-primary" />
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <p className={cn("text-sm font-medium text-gray-900", i.status === "done" && "line-through")}>{i.title}</p>
                 {i.why && <p className="text-xs leading-5 text-gray-600">{i.why}</p>}
@@ -169,6 +169,7 @@ function Checklist({ initial }) {
                   {i.effort && <Badge variant="secondary">{EFFORT[i.effort] || i.effort}</Badge>}
                   {i.recurred && <Badge variant="destructive">back again</Badge>}
                   {i.manual && <Badge variant="secondary">added by hand</Badge>}
+                  {i.status === "open" && i.snoozedUntil && new Date(i.snoozedUntil) > new Date() && <Badge variant="secondary">put off until {when(i.snoozedUntil)}</Badge>}
                   {i.status === "done" && i.doneBy && <span className="text-xs text-gray-500">done by {i.doneBy} {ago(i.doneAt)}</span>}
                 </div>
               </div>
@@ -271,7 +272,7 @@ function RunPanel({ catalogue, onDone }) {
             return (
               <li key={c.id}>
                 <label className={cn("flex items-start gap-3 rounded-lg p-2.5", c.available ? "cursor-pointer hover:bg-gray-50" : "opacity-50")}>
-                  {p ? <StatusIcon status={p.status} /> : <input type="checkbox" checked={picked.includes(c.id)} onChange={() => toggle(c.id)} disabled={!c.available || running} className="mt-0.5 size-4 accent-[#003157]" />}
+                  {p ? <StatusIcon status={p.status} /> : <input type="checkbox" checked={picked.includes(c.id)} onChange={() => toggle(c.id)} disabled={!c.available || running} className="mt-0.5 size-4 accent-primary" />}
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="flex flex-wrap items-baseline justify-between gap-2 text-sm font-medium text-gray-900">
                       {c.label}
@@ -307,7 +308,7 @@ function RunPanel({ catalogue, onDone }) {
         <div className="flex flex-col gap-6">
           <Group title="Paid data refreshes (DataForSEO)" group="paid" note="Run first, so the review reads fresh data. Estimates use your last real cost where there is one." />
           <label className={cn("flex items-start gap-3 rounded-lg bg-gray-50 p-3", !ai.available && "opacity-50")}>
-            {progress?.__brief ? <StatusIcon status="running" /> : <input type="checkbox" checked={useAi} onChange={(e) => setUseAi(e.target.checked)} disabled={!ai.available || running} className="mt-0.5 size-4 accent-[#003157]" />}
+            {progress?.__brief ? <StatusIcon status="running" /> : <input type="checkbox" checked={useAi} onChange={(e) => setUseAi(e.target.checked)} disabled={!ai.available || running} className="mt-0.5 size-4 accent-primary" />}
             <span className="flex flex-col">
               <span className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
                 <Sparkles className="size-3.5 text-primary" /> AI focus brief {ai.estimate != null && <span className="text-xs font-normal text-gray-500">≈ {money(ai.estimate, 3)}</span>}
@@ -357,7 +358,7 @@ function Automation({ initial, presets, cronReady }) {
         Run it automatically
       </h2>
       <label className="flex items-center gap-2 text-sm text-gray-800">
-        <input type="checkbox" checked={s.enabled} onChange={(e) => save({ ...s, enabled: e.target.checked })} className="size-4 accent-[#003157]" />
+        <input type="checkbox" checked={s.enabled} onChange={(e) => save({ ...s, enabled: e.target.checked })} className="size-4 accent-primary" />
         Every Monday at 06:30 (UTC), ready when you start the week
       </label>
       <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
@@ -369,7 +370,7 @@ function Automation({ initial, presets, cronReady }) {
           ))}
         </select>
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={s.useAi} onChange={(e) => save({ ...s, useAi: e.target.checked })} className="size-4 accent-[#003157]" /> AI brief
+          <input type="checkbox" checked={s.useAi} onChange={(e) => save({ ...s, useAi: e.target.checked })} className="size-4 accent-primary" /> AI brief
         </label>
       </div>
       {!cronReady && <p className="rounded-md bg-gray-50 p-3 text-xs text-gray-700">Add a <code className="font-mono">CRON_SECRET</code> environment variable in Vercel (any long random string) and redeploy — Vercel sends it with each scheduled run so nobody else can trigger it.</p>}

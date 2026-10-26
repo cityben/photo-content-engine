@@ -99,16 +99,38 @@ const googleBusinessSchema = z.object({
   text: z.string().describe("Google Business Profile 'What's new' post, 80-150 words, local and specific, ends with a call to action. No hashtags."),
 });
 
+const blogSchemaFor = (options) => {
+  const categories = [...new Set((options.serviceGroups || []).map((g) => g.division).filter(Boolean))];
+  return z.object({
+    title: z.string().describe("Article title, under 70 characters, that answers the search it targets, e.g. 'F-Gas leak checks for office air conditioning: what the law requires'"),
+    excerpt: z.string().describe("Summary for cards and Google, 1-2 sentences, 140-220 characters"),
+    category: z.string().describe(categories.length ? `Category, ideally one of: ${categories.join(" | ")}` : "Short category, e.g. 'Air Conditioning' or 'Company news'"),
+    content: z
+      .string()
+      .describe(
+        "Markdown body, 700-1,100 words. No H1 (the title is the H1). 3-6 '## ' sections of practical, specific guidance a facilities manager or building owner can act on; short paragraphs and bullet lists. Name regulations, standards and documents (e.g. F-Gas Regulation, BS 7671, TM44, SFG20, O&M manuals) only where they genuinely apply. End with a short section on getting a survey or quote. No invented statistics, prices, timescales or case examples."
+      ),
+    primaryKeyword: z.string().describe("The search phrase the article targets"),
+    imageAlt: z.string().describe("Alt text for the article's header photo if photos are provided, else empty"),
+  });
+};
+
 export const sectionSchemas = (options) => ({
   linkedin: linkedinSchema,
   instagram: instagramSchema,
   caseStudy: caseStudySchemaFor(options),
   googleBusiness: googleBusinessSchema,
+  blog: blogSchemaFor(options),
   seo: seoSchema,
   recommendations: z.array(recommendationSchema).describe("5-8 specific, actionable recommendations to get the most reach, engagement, enquiries and search traffic from THIS job"),
 });
 
 export const SECTIONS = Object.keys(sectionSchemas(optionsOf()));
+
+/** What "write everything" means: a finished job gets posts and a case study; an idea gets a blog post and posts. */
+export const JOB_SECTIONS = SECTIONS.filter((s) => s !== "blog");
+export const IDEA_SECTIONS = ["blog", "linkedin", "googleBusiness", "seo"];
+export const defaultSections = (job) => (job?.kind === "idea" ? IDEA_SECTIONS : JOB_SECTIONS);
 
 /* --- Inputs -------------------------------------------------------------- */
 
@@ -141,8 +163,10 @@ function describeJob(job) {
     job.target?.keyword &&
       `Target search: "${job.target.keyword}"${job.target.volume ? ` (${job.target.volume} UK searches/month)` : ""}. Use this exact phrase naturally in the case study title or summary, the SEO keywords and at least one post — never stuffed.`,
     job.target?.angle && `Planned angle: ${job.target.angle}`,
+    job.kind === "idea" &&
+      "\nThis is a planned article from the content pipeline, not a finished job. Write expert guidance towards the target search. Do NOT describe any project, client, site, date, result or figure as something the company did — there is no job behind this. Refer to the company's services in general terms only. Posts should point readers to the article ({{case_study_url}} in a first comment is replaced with its link).",
     "",
-    "Write-up from the team:",
+    job.kind === "idea" ? "Brief from the content pipeline:" : "Write-up from the team:",
     job.writeUp?.trim() || "(none — rely on the photos)",
   ];
   return lines.filter((l) => l !== undefined && l !== false && l !== null).join("\n");
@@ -170,7 +194,7 @@ Use this to pick keywords the site already gets impressions for but ranks 4-20 (
  *
  * Returns { content, run } — run records model, tokens and cost.
  */
-export async function generateJobContent(job, { sections = SECTIONS, searchData, instructions, current, model } = {}) {
+export async function generateJobContent(job, { sections = defaultSections(job), searchData, instructions, current, model } = {}) {
   const options = await getOptions();
   const schemas = sectionSchemas(options);
   const wanted = sections.filter((s) => schemas[s]);
@@ -184,7 +208,7 @@ export async function generateJobContent(job, { sections = SECTIONS, searchData,
     describeSearchData(searchData),
     "",
     options.serviceGroups.length ? `Website service pages (for internal links): ${options.serviceGroups.map((g) => `${g.division}: ${g.services.slice(0, 12).join(", ")}`).join(" / ")}` : "",
-    current && wanted.length < SECTIONS.length
+    current && wanted.length < defaultSections(job).length
       ? `\nThe other parts already written (keep consistent with them):\n${JSON.stringify(current, null, 1).slice(0, 4000)}`
       : "",
     instructions ? `\nExtra instructions from the user for this version: ${instructions}` : "",
@@ -208,7 +232,7 @@ export async function generateJobContent(job, { sections = SECTIONS, searchData,
   const run = {
     model: modelId,
     sections: wanted,
-    full: wanted.length === SECTIONS.length,
+    full: defaultSections(job).every((x) => wanted.includes(x)),
     inputTokens: usage?.inputTokens ?? null,
     outputTokens: usage?.outputTokens ?? null,
     costUsd: await runCost(modelId, usage, providerMetadata),

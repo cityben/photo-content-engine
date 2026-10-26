@@ -3,16 +3,16 @@
  * from it — social posts, the website case study, keywords, advice.
  */
 
-import { generateJobContent, SECTIONS } from "@/lib/ai";
+import { defaultSections, generateJobContent } from "@/lib/ai";
 import { cached } from "@/lib/cache";
 import { completeness } from "@/lib/case-study-fields";
-import { APPROVABLE, hasSubstance, orderedImages, SECTION_LABEL } from "@/lib/content";
+import { APPROVABLE, hasSubstance, isIdeaJob, mainImageOf, orderedImages, SECTION_LABEL } from "@/lib/content";
 import { markPublishedForJob } from "@/lib/ideas";
 import { deleteImage } from "@/lib/media";
 import { nextSlotFor } from "@/lib/schedule";
 import { createPost, listChannels, listPosts, socialMode } from "@/lib/social";
 import { collection } from "@/lib/store";
-import { createCaseStudyDraft, getSearchQueries, websiteConfig, websiteConfigured } from "@/lib/website-api";
+import { createBlogDraft, createCaseStudyDraft, getSearchQueries, websiteConfig, websiteConfigured } from "@/lib/website-api";
 
 const jobs = () => collection("jobs");
 
@@ -24,7 +24,7 @@ export async function getJob(id) {
   return jobs().get(id);
 }
 
-export { APPROVABLE, hasSubstance, needsApproval } from "@/lib/content";
+export { APPROVABLE, hasSubstance, isIdeaJob, needsApproval } from "@/lib/content";
 
 /* --- Approval ---------------------------------------------------------------
    Nothing reaches Buffer or the website until a person approves that exact
@@ -105,7 +105,11 @@ export async function saveJobEdits(id, input) {
 export async function deleteJob(id) {
   const job = await getJob(id);
   if (!job) return false;
-  await Promise.all((job.images || []).map((img) => deleteImage(img.url)));
+  // A photo can be shared (an idea's draft borrowing a job's photo): only
+  // delete files no other job uses.
+  const others = (await listJobs()).filter((j) => j.id !== id);
+  const inUse = new Set(others.flatMap((j) => (j.images || []).map((i) => i.url)));
+  await Promise.all((job.images || []).filter((img) => !inUse.has(img.url)).map((img) => deleteImage(img.url)));
   return jobs().remove(id);
 }
 
@@ -142,10 +146,14 @@ function relevantQueries(searchData, job) {
  * `preserve`: sections whose existing non-empty fields win over the AI's
  * (e.g. a case study imported from Word — AI only fills the gaps).
  */
-export async function generateForJob(id, { sections = SECTIONS, instructions, model, preserve = [] } = {}) {
+export async function generateForJob(id, { sections: asked, instructions, model, preserve = [] } = {}) {
   const job = await getJob(id);
   if (!job) throw new Error("Job not found");
-  if (!job.images?.length && !job.writeUp?.trim()) {
+  // An idea has no finished work behind it, so never a case study.
+  const sections = (asked || defaultSections(job)).filter((s) => !(isIdeaJob(job) && s === "caseStudy"));
+  if (!sections.length) throw new Error("Ideas get a blog post and posts — case studies come from finished jobs.");
+  // An idea's title and target are its brief; a finished job needs something to describe.
+  if (!isIdeaJob(job) && !job.images?.length && !job.writeUp?.trim()) {
     throw new Error("Add at least one photo or a write-up first.");
   }
 
@@ -209,7 +217,7 @@ export async function scheduleForJob(id, { channelId, dueAt, imageUrls }) {
 
   // Main building photo first, then the rest in the chosen order.
   const images = orderedImages(job).filter((img) => !imageUrls || imageUrls.includes(img.url));
-  const caseStudyUrl = job.website?.url;
+  const caseStudyUrl = job.website?.url || job.blogPost?.url;
   const comment = firstComment?.replace("{{case_study_url}}", caseStudyUrl || "").trim();
 
   // "Next slot": the app's publishing schedule picks the time, skipping
@@ -270,6 +278,33 @@ export async function sendCaseStudy(id) {
   await updateJob(id, { website: { ...result, sentAt: new Date().toISOString() } });
   await markPublishedForJob(job);
   return result;
+}
+
+/** Send the approved blog post to the website as a draft (published: false). */
+export async function sendBlog(id) {
+  const job = await getJob(id);
+  if (!job) throw new Error("Job not found");
+  const blog = job.content?.blog;
+  if (!hasSubstance("blog", blog)) throw new Error("Write the blog post first.");
+  if (!job.approvals?.blog) throw new ApprovalError("blog");
+  if (job.blogPost?.id) throw new Error("This blog post is already on the website.");
+  const missing = [!blog.excerpt?.trim() && "summary", !blog.category?.trim() && "category"].filter(Boolean);
+  if (missing.length) throw new Error(`The website needs a ${missing.join(" and ")}.`);
+  const photo = mainImageOf(job);
+  if (!photo) throw new Error("The website needs a header photo for every blog post — add one in Photos & brief.");
+
+  const result = await createBlogDraft({ blog, photo, idempotencyKey: `job-${job.id}-blog` });
+  await updateJob(id, { blogPost: { ...result, sentAt: new Date().toISOString() } });
+  await markPublishedForJob(job);
+  return result;
+}
+
+/** Google Business posts go up by hand (copy and paste); this records that it's done. */
+export async function markGooglePosted(id, user) {
+  const job = await getJob(id);
+  if (!job) throw new Error("Job not found");
+  if (!job.approvals?.googleBusiness) throw new ApprovalError("googleBusiness");
+  return updateJob(id, { googlePosted: { by: user?.email || null, at: new Date().toISOString() } });
 }
 
 /** A post was deleted: drop it from its job so the job shows as ready again. */

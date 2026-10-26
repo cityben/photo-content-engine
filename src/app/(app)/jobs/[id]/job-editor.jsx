@@ -32,14 +32,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/client-api";
-import { APPROVABLE, blankContent, mainImageOf, needsApproval, orderedImages } from "@/lib/content";
+import { APPROVABLE, blankContent, isIdeaJob, mainImageOf, needsApproval, orderedImages } from "@/lib/content";
 import { formatDateTime } from "@/lib/time";
 
 import { ApprovalBar } from "./approval-bar";
+import { BlogForm } from "./blog-form";
 import { CaseStudyForm } from "./case-study-form";
 import { SocialComposer } from "./social-composer";
 
 const TABS = [
+  { id: "blog", label: "Blog post", section: "blog" },
   { id: "linkedin", label: "LinkedIn", section: "linkedin" },
   { id: "instagram", label: "Instagram", section: "instagram" },
   { id: "caseStudy", label: "Case study", section: "caseStudy" },
@@ -49,6 +51,10 @@ const TABS = [
   { id: "brief", label: "Photos & brief" },
 ];
 
+/** An idea's draft: blog post and posts, no case study. A finished job shows the blog tab only once it has one. */
+const tabsFor = (job, content) =>
+  TABS.filter((t) => (isIdeaJob(job) ? !["instagram", "caseStudy", "tips"].includes(t.id) || content?.[t.section] : t.id !== "blog" || content?.blog));
+
 function RewriteDialog({ job, tab, onDone, models }) {
   const [open, setOpen] = useState(false);
   const [scope, setScope] = useState("tab");
@@ -56,7 +62,7 @@ function RewriteDialog({ job, tab, onDone, models }) {
   const [model, setModel] = useState("default");
   const [busy, setBusy] = useState(false);
   const section = TABS.find((t) => t.id === tab)?.section;
-  const written = Boolean(job.generatedAt || job.content?.linkedin || job.content?.caseStudy);
+  const written = Boolean(job.generatedAt || job.content?.linkedin || job.content?.caseStudy || job.content?.blog);
 
   const run = async () => {
     setBusy(true);
@@ -153,13 +159,26 @@ function RewriteDialog({ job, tab, onDone, models }) {
   );
 }
 
-function GoogleBusiness({ data, onChange }) {
+function GoogleBusiness({ job, data, onChange, approved, dirty, onChanged }) {
   const { copied, copy } = useCopy();
+  const [busy, setBusy] = useState(false);
   const text = data?.text || "";
+  const markPosted = async () => {
+    setBusy(true);
+    try {
+      const { job: updated } = await api(`/api/jobs/${job.id}/google-posted`, { method: "POST" });
+      onChanged(updated);
+      toast.success("Marked as posted on Google Business.");
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <div className="flex max-w-3xl flex-col gap-4">
       <p className="text-sm text-gray-600">
-        Post this on your Google Business Profile (Buffer can&apos;t schedule it from here). Regular updates with photos help you show up in local &quot;near me&quot; searches.
+        Post this on your Google Business Profile (Buffer can&apos;t schedule it from here), then mark it posted. Regular updates with photos help you show up in local &quot;near me&quot; searches.
       </p>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
@@ -168,14 +187,23 @@ function GoogleBusiness({ data, onChange }) {
         </div>
         <Textarea id="gbp" className="min-h-48" value={text} onChange={(e) => onChange({ ...data, text: e.target.value })} />
       </div>
-      <Button variant="outline" className="self-start" onClick={() => copy(text, "Google Business post copied")} disabled={!text}>
-        {copied ? <Check /> : <Copy />} Copy
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outline" onClick={() => copy(text, "Google Business post copied")} disabled={!text}>
+          {copied ? <Check /> : <Copy />} Copy
+        </Button>
+        {job.googlePosted ? (
+          <Badge variant="success">Posted {formatDateTime(job.googlePosted.at)}</Badge>
+        ) : (
+          <Button variant="outline" onClick={markPosted} disabled={!approved || dirty || busy}>
+            {busy ? <Loader2 className="animate-spin" /> : <CheckCircle2 />} Mark as posted
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
 
-export function JobEditor({ initialJob, social, posts, websiteConnected, models, startManual }) {
+export function JobEditor({ initialJob, social, posts, websiteConnected, models, startManual, startTab }) {
   const router = useRouter();
   const [job, setJob] = useState(initialJob);
   const [content, setContent] = useState(() => {
@@ -192,9 +220,12 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
   });
   const [dirty, setDirty] = useState(new Set());
   const [saving, setSaving] = useState(false);
-  const hasContent = (c) => Boolean(c && (c.linkedin || c.instagram || c.caseStudy));
+  const hasContent = (c) => Boolean(c && (c.linkedin || c.instagram || c.caseStudy || c.blog));
+  const firstTab = isIdeaJob(initialJob) ? "blog" : "linkedin";
   const [tab, setTab] = useState(() =>
-    startManual && initialJob.source === "word" ? "caseStudy" : startManual || hasContent(initialJob.content) ? "linkedin" : "brief"
+    startTab && tabsFor(initialJob, initialJob.content).some((t) => t.id === startTab)
+      ? startTab
+      : startManual && initialJob.source === "word" ? "caseStudy" : startManual || hasContent(initialJob.content) ? firstTab : "brief"
   );
   const [selected, setSelected] = useState(() => ({
     linkedin: orderedImages(initialJob).slice(0, 1).map((i) => i.url),
@@ -232,7 +263,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
     setJob(updated);
     setContent(updated.content || {});
     setDirty((d) => new Set([...d].filter((k) => k === "brief")));
-    if (tab === "brief") setTab("linkedin");
+    if (tab === "brief") setTab(firstTab);
     router.refresh();
   };
 
@@ -265,7 +296,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
   const postsFor = (service) => posts.filter((p) => p.service === service);
   const writeManually = () => {
     setContent((c) => blankContent(job, c));
-    if (tab === "brief") setTab("linkedin");
+    if (tab === "brief") setTab(firstTab);
   };
   const aiWrote = (section) => (job.aiRuns || []).some((r) => r.sections?.includes(section));
   const approvalProps = (section) => ({
@@ -301,6 +332,8 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
             {pending.length > 0 && <Badge variant="secondary">{pending.length} to approve</Badge>}
             {posts.length > 0 && <Badge>{posts.length} scheduled</Badge>}
             {job.website?.projectId && <Badge variant="success">Case study draft on website</Badge>}
+            {job.blogPost?.id && <Badge variant="success">Blog draft on website</Badge>}
+            {isIdeaJob(job) && <Badge variant="secondary">From the content pipeline</Badge>}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -340,7 +373,7 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
       <Tabs value={tab} onValueChange={setTab}>
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
           <TabsList>
-            {TABS.map((t) => (
+            {tabsFor(job, content).map((t) => (
               <TabsTrigger key={t.id} value={t.id}>
                 {t.label}
                 {APPROVABLE.includes(t.section) && job.approvals?.[t.section] && !dirty.has(t.section) && (
@@ -366,6 +399,18 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
               </div>
             ) : (
               <>
+                <TabsContent value="blog">
+                  <ApprovalBar {...approvalProps("blog")} />
+                  <BlogForm
+                    approved={Boolean(job.approvals?.blog)}
+                    job={job}
+                    data={content.blog}
+                    onChange={setSection("blog")}
+                    websiteConnected={websiteConnected}
+                    dirty={dirty.has("blog")}
+                    onShowPhotos={() => setTab("brief")}
+                  />
+                </TabsContent>
                 <TabsContent value="linkedin">
                   <ApprovalBar {...approvalProps("linkedin")} />
                   <SocialComposer
@@ -410,7 +455,17 @@ export function JobEditor({ initialJob, social, posts, websiteConnected, models,
                 </TabsContent>
                 <TabsContent value="googleBusiness">
                   <ApprovalBar {...approvalProps("googleBusiness")} />
-                  <GoogleBusiness data={content.googleBusiness} onChange={setSection("googleBusiness")} />
+                  <GoogleBusiness
+                    job={job}
+                    data={content.googleBusiness}
+                    onChange={setSection("googleBusiness")}
+                    approved={Boolean(job.approvals?.googleBusiness)}
+                    dirty={dirty.has("googleBusiness")}
+                    onChanged={(updated) => {
+                      setJob(updated);
+                      router.refresh();
+                    }}
+                  />
                 </TabsContent>
                 <TabsContent value="seo">
                   <SeoPanel seo={content.seo} searchDataUsed={job.searchDataUsed} />

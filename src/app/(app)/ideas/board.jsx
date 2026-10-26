@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { ArrowRight, GripVertical, Loader2, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -27,7 +28,7 @@ function IdeaCard(props) {
   return <IdeaCardView {...props} nodeRef={setNodeRef} handle={{ ...attributes, ...listeners }} isDragging={isDragging} />;
 }
 
-function IdeaCardView({ idea, job, stages, formats, sources, onEdit, onMove, overlay, nodeRef, handle, isDragging }) {
+function IdeaCardView({ idea, job, stages, formats, sources, onEdit, onMove, onDraft, drafting, aiReady, overlay, nodeRef, handle, isDragging }) {
   const index = stages.findIndex((s) => s.id === idea.status);
   const next = stages[index + 1];
   return (
@@ -70,9 +71,16 @@ function IdeaCardView({ idea, job, stages, formats, sources, onEdit, onMove, ove
             </Button>
           ) : (
             idea.status !== "published" && (
-              <Button size="sm" variant="ghost" asChild className="h-7 px-2 text-xs">
-                <Link href={`/jobs/new?idea=${idea.id}`}>Start a job</Link>
-              </Button>
+              <>
+                {idea.format !== "case-study" && aiReady && (
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onDraft(idea)} disabled={drafting} title="Blog post, LinkedIn and Google Business drafts, ready to review">
+                    {drafting ? <Loader2 className="animate-spin" /> : <Sparkles />} {drafting ? "Drafting…" : "Draft with AI"}
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" asChild className="h-7 px-2 text-xs">
+                  <Link href={`/jobs/new?idea=${idea.id}`}>Start a job</Link>
+                </Button>
+              </>
             )
           )}
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onEdit(idea)} aria-label={`Edit ${idea.title}`}>
@@ -247,6 +255,9 @@ export function Board({ initialIdeas, jobs, stages, formats, sources, aiReady })
   const [planning, setPlanning] = useState(false);
   const [format, setFormat] = useState("all");
   const [source, setSource] = useState("all");
+  const [drafting, setDrafting] = useState(null);
+  const drafted = useMemo(() => new Set(ideas.map((i) => i.jobId).filter(Boolean)), [ideas]);
+  const router = useRouter();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -282,6 +293,21 @@ export function Board({ initialIdeas, jobs, stages, formats, sources, aiReady })
     } catch (e) {
       replace(idea);
       toast.error(e.message);
+    }
+  };
+
+  const draft = async (idea) => {
+    setDrafting(idea.id);
+    try {
+      const { job, idea: saved, error } = await api(`/api/ideas/${idea.id}/draft`, { method: "POST", body: {} });
+      replace(saved);
+      if (error) toast.error(`Draft created but the AI couldn't write it: ${error}`);
+      else toast.success("Drafted — review it before anything goes out.", { action: { label: "Review", onClick: () => router.push(`/jobs/${job.id}`) } });
+      router.refresh();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setDrafting(null);
     }
   };
 
@@ -351,7 +377,7 @@ export function Board({ initialIdeas, jobs, stages, formats, sources, aiReady })
               <Column key={stage.id} stage={stage} count={cards.length}>
                 {stage.id === "idea" && <QuickAdd formats={formats} onAdded={(idea) => setIdeas((list) => [idea, ...list])} />}
                 {cards.map((idea) => (
-                  <IdeaCard key={idea.id} idea={idea} job={idea.jobId && jobs[idea.jobId] ? { id: idea.jobId } : null} stages={stages} formats={formats} sources={sources} onEdit={setEditing} onMove={move} />
+                  <IdeaCard key={idea.id} idea={idea} job={idea.jobId && (jobs[idea.jobId] || drafted.has(idea.jobId)) ? { id: idea.jobId } : null} stages={stages} formats={formats} sources={sources} onEdit={setEditing} onMove={move} onDraft={draft} drafting={drafting === idea.id} aiReady={aiReady} />
                 ))}
                 {!cards.length && stage.id !== "idea" && <p className="px-1 text-xs text-gray-500">Nothing here yet.</p>}
               </Column>

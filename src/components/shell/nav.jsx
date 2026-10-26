@@ -15,6 +15,7 @@ import {
   Search,
   Settings,
   Handshake,
+  Inbox,
   ShieldCheck,
 } from "lucide-react";
 
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils";
 export const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/focus", label: "Focus", icon: Crosshair },
+  { href: "/review", label: "Review", icon: Inbox },
   { href: "/jobs", label: "Jobs", icon: FolderOpen },
   { href: "/ideas", label: "Content pipeline", icon: KanbanSquare },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },

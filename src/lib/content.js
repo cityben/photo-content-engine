@@ -4,13 +4,14 @@
  * section; any change to it clears the approval (enforced in jobs.js).
  */
 
-export const APPROVABLE = ["linkedin", "instagram", "caseStudy", "googleBusiness"];
+export const APPROVABLE = ["linkedin", "instagram", "caseStudy", "googleBusiness", "blog"];
 
 export const SECTION_LABEL = {
   linkedin: "LinkedIn post",
   instagram: "Instagram caption",
   caseStudy: "case study",
   googleBusiness: "Google Business post",
+  blog: "blog post",
 };
 
 /** Has the section got something worth approving? */
@@ -19,15 +20,32 @@ export function hasSubstance(section, data) {
   if (section === "linkedin" || section === "googleBusiness") return Boolean(data.text?.trim());
   if (section === "instagram") return Boolean(data.caption?.trim());
   if (section === "caseStudy") return Boolean(data.title?.trim() && data.description?.trim());
+  if (section === "blog") return Boolean(data.title?.trim() && data.content?.trim());
   return false;
 }
+
+/**
+ * Jobs made from a pipeline idea (kind "idea") have no finished work behind
+ * them: they get a blog post and posts, never a case study.
+ */
+export const isIdeaJob = (job) => job?.kind === "idea";
 
 export function needsApproval(job) {
   return APPROVABLE.filter((s) => hasSubstance(s, job.content?.[s]) && !job.approvals?.[s]);
 }
 
+export const blankBlog = (job) => ({ title: job.title || "", excerpt: "", category: "", content: "", primaryKeyword: job.target?.keyword || "", imageAlt: "" });
+
 /** Blank sections for writing by hand; keeps any that already exist. */
 export function blankContent(job, existing = {}) {
+  if (isIdeaJob(job)) {
+    return {
+      ...existing,
+      blog: existing.blog || blankBlog(job),
+      linkedin: existing.linkedin || { text: "", hashtags: [], firstComment: "" },
+      googleBusiness: existing.googleBusiness || { text: "" },
+    };
+  }
   return {
     ...existing,
     linkedin: existing.linkedin || { text: "", hashtags: [], firstComment: "" },

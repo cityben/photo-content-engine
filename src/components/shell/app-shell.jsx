@@ -4,6 +4,7 @@ import { LogOut, Plus } from "lucide-react";
 import { signOut } from "@/auth";
 import { MobileNav } from "@/components/shell/mobile-nav";
 import { Nav } from "@/components/shell/nav";
+import { NotificationBell } from "@/components/shell/notification-bell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -54,7 +55,10 @@ export function AppShell({ user, brandName, children }) {
     <TooltipProvider>
       <div className="flex min-h-dvh">
         <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-6 bg-white p-4 shadow-paper lg:flex print:hidden">
-          <Brand name={brandName} />
+          <div className="flex items-center justify-between gap-2">
+            <Brand name={brandName} />
+            <NotificationBell />
+          </div>
           <Button asChild className="w-full">
             <Link href="/jobs/new">
               <Plus /> New job
@@ -72,11 +76,14 @@ export function AppShell({ user, brandName, children }) {
               <MobileNav footer={<UserFooter user={user} />} />
               <Brand name={brandName} />
             </div>
-            <Button asChild size="sm">
-              <Link href="/jobs/new">
-                <Plus /> New job
-              </Link>
-            </Button>
+            <div className="flex items-center gap-1">
+              <NotificationBell />
+              <Button asChild size="sm">
+                <Link href="/jobs/new">
+                  <Plus /> New job
+                </Link>
+              </Button>
+            </div>
           </header>
           <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10">
             {children}

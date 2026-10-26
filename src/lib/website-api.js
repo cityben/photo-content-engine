@@ -209,13 +209,13 @@ async function imageBytes(url) {
 }
 
 /** Upload one photo to the website. Returns its site path, e.g. /uploads/ab12….jpg */
-export async function uploadImage({ url, alt, title, company }) {
+export async function uploadImage({ url, alt, title, company, folder = "case-studies" }) {
   const { bytes, contentType } = await imageBytes(url);
   const form = new FormData();
   if (alt) form.append("alt", alt.slice(0, 300));
   if (title) form.append("title", title.slice(0, 200));
   if (company) form.append("company", company);
-  form.append("folder", "case-studies");
+  form.append("folder", folder);
   const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
   form.append("file", new Blob([bytes], { type: contentType }), `photo.${ext}`);
   const data = await request("/uploads", { method: "POST", body: form });
@@ -281,6 +281,45 @@ export async function createCaseStudyDraft({ caseStudy: raw, photos = [], idempo
     images: uploaded,
     status: project.published ? "published" : "draft",
   };
+}
+
+export const slugify = (text) =>
+  String(text || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80)
+    .replace(/-+$/, "");
+
+/**
+ * Create a draft blog post (the website's News section). The website
+ * requires title, excerpt, content (markdown), image and category; it builds
+ * the SEO fields itself. Always published: false — a person publishes it.
+ */
+export async function createBlogDraft({ blog, photo, idempotencyKey }) {
+  const image = await uploadImage({ url: photo.url, alt: blog.imageAlt || photo.alt, title: blog.title, folder: "news" });
+  const words = blog.content.trim().split(/\s+/).length;
+  const body = {
+    title: blog.title.trim(),
+    slug: slugify(blog.slug || blog.title),
+    excerpt: blog.excerpt.trim(),
+    content: blog.content.trim(),
+    image,
+    category: blog.category.trim(),
+    readTime: `${Math.max(1, Math.round(words / 200))} min read`,
+    published: false,
+  };
+  const post = await request("/blogs", {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json", ...(idempotencyKey && { "Idempotency-Key": idempotencyKey }) },
+  });
+  const { siteUrl } = await websiteConfig();
+  const slug = post.slug || body.slug;
+  return { id: post._id, slug, url: `${siteUrl}/news/${slug}`, adminUrl: `${siteUrl}/admin/blogs/${slug}`, image, status: post.published ? "published" : "draft" };
 }
 
 /** Update an existing case study (partial). */
