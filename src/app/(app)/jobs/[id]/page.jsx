@@ -38,7 +38,7 @@ export default async function JobPage({ params, searchParams }) {
         initialJob={job}
         posts={posts.filter((p) => p.status !== "deleted")}
         social={{ mode: socialMode(), postingEnabled: postingEnabled(), channels }}
-        websiteConnected={websiteConfigured()}
+        websiteConnected={await websiteConfigured()}
         models={{ active: catalog.active, shortlist: catalog.shortlist }}
         startManual={startManual}
       />

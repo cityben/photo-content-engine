@@ -1,6 +1,7 @@
 import { CheckCircle2, CircleAlert, Circle } from "lucide-react";
 
 import { ModelPicker } from "@/components/model-picker";
+import { WebsiteConnectionForm } from "@/components/website-connection";
 import { ChannelChip } from "@/components/post-row";
 import { PageHeader } from "@/components/shell/app-shell";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,7 @@ import { setupStatus } from "@/lib/setup";
 import { checkStorage } from "@/lib/store";
 import { listChannels, socialMode, status as socialStatus } from "@/lib/social";
 import { money } from "@/lib/ui-labels";
-import { checkWebsiteConnection, WEBSITE_URL } from "@/lib/website-api";
+import { checkWebsiteConnection, websiteConfigPublic } from "@/lib/website-api";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Settings — Content Engine" };
@@ -60,17 +61,17 @@ export default async function SettingsPage() {
       return typeof fallback === "function" ? fallback(error) : fallback;
     });
   const seoOn = dataforseoConfigured();
-  const [buffer, channels, website, catalog, credits, storage, seoSpend, seoBalance] = await Promise.all([
+  const [buffer, channels, website, websiteConfig, catalog, credits, storage, seoSpend, seoBalance] = await Promise.all([
     settle(socialStatus(), (e) => ({ mode: socialMode(), ok: false, error: e.message }), "buffer"),
     settle(listChannels(), [], "channels"),
     settle(checkWebsiteConnection(), (e) => ({ configured: true, ok: false, error: e.message }), "website"),
+    settle(websiteConfigPublic(), (e) => ({ siteUrl: "", apiBase: "", configured: false, keyError: e.message }), "website config"),
     settle(modelCatalog(), (e) => ({ active: "", shortlist: [], others: [], usage: { inputTokens: 0, outputTokens: 0 }, error: e.message }), "models"),
     settle(gatewayCredits(), null, "credits"),
     settle(checkStorage(), (e) => ({ ok: false, error: e.message }), "storage"),
     settle(monthSpend(), null, "dataforseo spend"),
     seoOn ? settle(accountBalance().then((balance) => ({ balance })), (e) => ({ error: e.message }), "dataforseo") : null,
   ]);
-  const scopes = website.me?.scopes || website.me?.key?.scopes;
 
   return (
     <>
@@ -145,26 +146,21 @@ export default async function SettingsPage() {
         <Integration
           title="Website"
           state={!website.configured ? "off" : website.ok ? "ok" : "error"}
-          summary={`${WEBSITE_URL} — case study drafts, photo uploads, Search Console and traffic reports.`}
+          summary={`${websiteConfig.siteUrl || "Not set"} — case study drafts, photo uploads, Search Console and traffic reports.`}
         >
-          {website.error && <p className="rounded-md bg-destructive-soft p-3 text-destructive">{website.error}</p>}
-          {website.ok && (
-            <p>
-              Connected{website.me?.name ? ` as "${website.me.name}"` : ""}
-              {Array.isArray(scopes) && ` · scopes: ${scopes.join(", ")}`}
-            </p>
-          )}
-          <ol className="list-decimal space-y-1 pl-5 text-gray-600">
-            <li>
-              Sign in to the website admin as a developer and open <Env>/admin/api-keys</Env>.
-            </li>
-            <li>
-              Create a key with role <strong>editor</strong> and scopes <Env>content:write</Env> <Env>media:write</Env> <Env>analytics:read</Env>. Leave allowed origins empty (this app calls from its server).
-            </li>
-            <li>
-              Add it as <Env>WEBSITE_API_KEY</Env> (starts <Env>cc_live_</Env>). <Env>WEBSITE_API_SECRET</Env> isn&apos;t used by the website and can be removed.
-            </li>
-          </ol>
+          <WebsiteConnectionForm initial={websiteConfig} initialCheck={website.configured ? website : null} />
+          <details className="text-gray-600">
+            <summary className="cursor-pointer text-sm font-medium text-gray-800">Where do I get a key?</summary>
+            <ol className="mt-2 list-decimal space-y-1 pl-5">
+              <li>
+                Sign in to the website admin as a developer and open <Env>/admin/api-keys</Env>.
+              </li>
+              <li>
+                Create a key with role <strong>editor</strong> and scopes <Env>content:write</Env> <Env>media:write</Env> <Env>analytics:read</Env>. Leave allowed origins empty (this app calls from its server).
+              </li>
+              <li>Paste it above (starts <Env>cc_live_</Env>) and press Save. It&apos;s stored encrypted and never shown again.</li>
+            </ol>
+          </details>
         </Integration>
 
         <Integration

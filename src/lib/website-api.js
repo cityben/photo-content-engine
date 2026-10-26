@@ -1,27 +1,129 @@
 /**
  * Acme Ltd website API client (cityben/company-website).
  *
- * Uses the supported v1 API: POST {WEBSITE_API_BASE}/projects with an API key
+ * Uses the supported v1 API: POST {site}/api/v1/projects with an API key
  * from the website's /admin/api-keys page — role editor, scopes content:write
  * and media:write — sent as `Authorization: Bearer cc_live_…`.
  *
  * Photos are uploaded first (POST /uploads, multipart "file"), because the
  * site only renders images it hosts under /uploads. Case studies are always
  * created with published:false — leaving it out would publish immediately.
+ *
+ * The address and key are set on the Settings page (key encrypted at rest);
+ * env vars are the fallback.
  */
 
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
+
 import { getStoredImage } from "@/lib/media";
+import { isPrivateAddress } from "@/lib/remote-file";
+import { hintFor, openSecret, sealSecret } from "@/lib/secret-box";
+import { collection } from "@/lib/store";
 
-export const WEBSITE_URL = (process.env.NEXT_PUBLIC_WEBSITE_URL || "https://www.example.co.uk").replace(/\/$/, "");
-const API_BASE = (process.env.WEBSITE_API_BASE || `${WEBSITE_URL}/api/v1`).replace(/\/$/, "");
+const DEFAULT_SITE = "https://www.example.co.uk";
+const SETTINGS_KEY = "website-connection";
 
-export function websiteApiKey() {
-  // WEBSITE_API_TOKEN is accepted for older setups that used that name.
-  return process.env.WEBSITE_API_KEY || process.env.WEBSITE_API_TOKEN || "";
+/**
+ * "https://example.com", "https://example.com/" or "https://example.com/api/v1"
+ * → { siteUrl: "https://example.com", apiBase: "https://example.com/api/v1" }.
+ */
+export function normaliseApiUrl(input) {
+  const raw = String(input || "").trim();
+  if (!raw) throw new Error("Enter the website address.");
+  const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  if (url.protocol !== "https:") throw new Error("Use an https:// address.");
+  url.hash = "";
+  url.search = "";
+  const path = url.pathname.replace(/\/+$/, "");
+  const base = path.endsWith("/api/v1") ? path.slice(0, -"/api/v1".length) : path;
+  const siteUrl = `${url.origin}${base}`;
+  return { siteUrl, apiBase: `${siteUrl}/api/v1` };
 }
 
-export function websiteConfigured() {
-  return Boolean(websiteApiKey());
+// Settings are read on most requests; keep them for 30s.
+let memo = null;
+async function saved() {
+  if (memo && Date.now() - memo.at < 30000) return memo.value;
+  let value = null;
+  try {
+    const [doc] = await collection("settings").find({ key: SETTINGS_KEY });
+    value = doc?.value || null;
+  } catch (error) {
+    console.error("[website] settings read failed:", error.message);
+  }
+  memo = { at: Date.now(), value };
+  return value;
+}
+
+/**
+ * Where the website is and the key to use. The Settings page wins; the
+ * WEBSITE_API_KEY / NEXT_PUBLIC_WEBSITE_URL env vars are the fallback.
+ */
+export async function websiteConfig() {
+  const s = await saved();
+  const envUrl = process.env.WEBSITE_API_BASE || process.env.NEXT_PUBLIC_WEBSITE_URL || DEFAULT_SITE;
+  const { siteUrl, apiBase } = normaliseApiUrl(s?.apiUrl || envUrl);
+  let apiKey = "";
+  let keySource = null;
+  let keyError = null;
+  if (s?.apiKey) {
+    try {
+      apiKey = openSecret(s.apiKey);
+      keySource = "settings";
+    } catch {
+      keyError = "The saved API key can't be read (AUTH_SECRET changed?). Enter it again.";
+    }
+  }
+  const envKey = process.env.WEBSITE_API_KEY || process.env.WEBSITE_API_TOKEN || "";
+  if (!apiKey && envKey) {
+    apiKey = envKey;
+    keySource = "env";
+  }
+  return { siteUrl, apiBase, apiKey, urlSource: s?.apiUrl ? "settings" : "env", keySource, keyHint: hintFor(apiKey), keyError, updatedBy: s?.updatedBy || null, updatedAt: s?.updatedAt || null };
+}
+
+/** What the Settings page may show — never the key itself. */
+export async function websiteConfigPublic() {
+  const { apiKey, ...rest } = await websiteConfig();
+  return { ...rest, configured: Boolean(apiKey) };
+}
+
+export async function websiteConfigured() {
+  return Boolean((await websiteConfig()).apiKey);
+}
+
+/** The API must be on the public internet (this runs on our server). */
+async function assertPublicHost(apiBase) {
+  const { hostname } = new URL(apiBase);
+  if (hostname === "localhost") throw new Error("That address isn't on the public internet.");
+  const addresses = isIP(hostname) ? [{ address: hostname }] : await lookup(hostname, { all: true }).catch(() => []);
+  if (!addresses.length) throw new Error(`Can't find ${hostname} — check the address.`);
+  if (addresses.some((a) => isPrivateAddress(a.address))) throw new Error("That address isn't on the public internet.");
+}
+
+/**
+ * Save the address and/or key from Settings. An empty key keeps the saved
+ * one; `clearKey` removes it (falling back to the env var, if any).
+ */
+export async function saveWebsiteConnection({ apiUrl, apiKey, clearKey }, user) {
+  const current = (await saved()) || {};
+  const next = { ...current, updatedBy: user?.email || null, updatedAt: new Date().toISOString() };
+  if (apiUrl !== undefined) {
+    if (apiUrl) {
+      const { apiBase } = normaliseApiUrl(apiUrl);
+      await assertPublicHost(apiBase);
+      next.apiUrl = apiBase;
+    } else delete next.apiUrl;
+  }
+  if (clearKey) delete next.apiKey;
+  else if (apiKey) next.apiKey = sealSecret(apiKey.trim());
+  const settings = collection("settings");
+  const [doc] = await settings.find({ key: SETTINGS_KEY });
+  if (doc) await settings.update(doc.id, { key: SETTINGS_KEY, value: next });
+  else await settings.insert({ key: SETTINGS_KEY, value: next });
+  memo = null;
+  return websiteConfigPublic();
 }
 
 /** Fields the website's v1 API accepts for a project (lib/apiResources.js PROJECT_WRITABLE). */
@@ -44,21 +146,34 @@ export class WebsiteError extends Error {
   }
 }
 
-async function request(path, { method = "GET", body, headers = {} } = {}) {
-  const key = websiteApiKey();
-  if (!key) throw new WebsiteError("WEBSITE_API_KEY is not set");
+async function request(path, { method = "GET", body, headers = {} } = {}, config) {
+  const { apiBase, apiKey: key } = config || (await websiteConfig());
+  if (!key) throw new WebsiteError("The website isn't connected. Add its address and API key in Settings.");
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${key}`, ...headers },
-    body,
-    cache: "no-store",
-  });
+  let res;
+  try {
+    res = await fetch(`${apiBase}${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${key}`, ...headers },
+      body,
+      cache: "no-store",
+      signal: AbortSignal.timeout(30000),
+    });
+  } catch (error) {
+    const reason = error.name === "TimeoutError" ? "timed out" : error.cause?.code || error.message;
+    throw new WebsiteError(`Couldn't reach ${apiBase} (${reason}). Check the address in Settings.`);
+  }
   const json = await res.json().catch(() => null);
   if (!res.ok) {
     const err = json?.error || {};
     const detail = err.details ? ` (${Object.entries(err.details).map(([k, v]) => `${k}: ${v}`).join("; ")})` : "";
-    throw new WebsiteError(`${err.message || `Website API error ${res.status}`}${detail}`, {
+    const hint =
+      res.status === 404 && !err.message
+        ? ` — ${apiBase} has no v1 API. Check the address in Settings points at the new website (e.g. https://staging.example.co.uk until launch).`
+        : res.status === 401 && !err.message
+          ? " — the API key was rejected."
+          : "";
+    throw new WebsiteError(`${err.message || `Website API error ${res.status}`}${detail}${hint}`, {
       status: res.status,
       code: err.code,
       details: err.details,
@@ -138,11 +253,12 @@ export async function createCaseStudyDraft({ caseStudy, photos = [], idempotency
     },
   });
 
+  const { siteUrl } = await websiteConfig();
   return {
     projectId: project._id,
     slug: project.slug,
-    url: `${WEBSITE_URL}/case-studies/${project.slug}`,
-    adminUrl: `${WEBSITE_URL}/admin`,
+    url: `${siteUrl}/case-studies/${project.slug}`,
+    adminUrl: `${siteUrl}/admin`,
     images: uploaded,
     status: project.published ? "published" : "draft",
   };
@@ -158,14 +274,23 @@ export async function updateCaseStudy(idOrSlug, fields) {
   return { projectId: project._id, slug: project.slug, status: project.published ? "published" : "draft" };
 }
 
-/** Who the key belongs to — used by the Settings page to check the connection. */
-export async function checkWebsiteConnection() {
-  if (!websiteConfigured()) return { configured: false, ok: false };
+/**
+ * Who the key belongs to — the Settings check. Pass { apiUrl, apiKey } to
+ * test values before saving them; otherwise the saved connection is used.
+ */
+export async function checkWebsiteConnection(candidate) {
+  let config = await websiteConfig();
+  if (candidate) {
+    const { siteUrl, apiBase } = candidate.apiUrl ? normaliseApiUrl(candidate.apiUrl) : config;
+    await assertPublicHost(apiBase);
+    config = { ...config, siteUrl, apiBase, apiKey: candidate.apiKey || config.apiKey };
+  }
+  if (!config.apiKey) return { configured: false, ok: false, apiBase: config.apiBase };
   try {
-    const me = await request("/me");
-    return { configured: true, ok: true, me };
+    const me = await request("/me", {}, config);
+    return { configured: true, ok: true, me, apiBase: config.apiBase };
   } catch (error) {
-    return { configured: true, ok: false, error: error.message };
+    return { configured: true, ok: false, error: error.message, apiBase: config.apiBase };
   }
 }
 

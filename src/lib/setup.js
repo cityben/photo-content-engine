@@ -9,6 +9,7 @@ import { websiteConfigured } from "@/lib/website-api";
 
 export async function setupStatus() {
   const model = await getActiveModel();
+  const website = await websiteConfigured();
   const onVercel = Boolean(process.env.VERCEL);
   return [
     {
@@ -47,11 +48,11 @@ export async function setupStatus() {
     {
       id: "website",
       label: "Website (case studies + Search Console)",
-      done: websiteConfigured(),
-      detail: websiteConfigured()
+      done: website,
+      detail: website
         ? "Case studies go to the website as drafts; keyword data comes from Search Console."
         : "Not connected — keywords are AI estimates and case studies can't be sent.",
-      fix: "Website → /admin/api-keys: create an editor key with content:write, media:write and analytics:read. Set WEBSITE_API_KEY.",
+      fix: "Website → /admin/api-keys: create an editor key with content:write, media:write and analytics:read. Add the website address and key in Settings → Website.",
     },
     {
       id: "auth",

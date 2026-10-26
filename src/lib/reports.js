@@ -11,7 +11,7 @@ import { listJobs } from "@/lib/jobs";
 import { history } from "@/lib/seo/market";
 import { analytics } from "@/lib/social";
 import { collection } from "@/lib/store";
-import { getPagesReport, getReportSummary, getSearchQueries, getTrafficReport, websiteConfigured } from "@/lib/website-api";
+import { getPagesReport, getReportSummary, getSearchQueries, getTrafficReport, websiteConfig, websiteConfigured } from "@/lib/website-api";
 
 import { socialReferrals } from "./growth";
 
@@ -80,8 +80,9 @@ async function settle(promise) {
 }
 
 async function websiteForMonth(r) {
-  if (!websiteConfigured()) return { configured: false };
-  const { value } = await cached(`report-website-${r.month}-${r.to}`, 3 * 3600000, async () => {
+  if (!(await websiteConfigured())) return { configured: false };
+  const { siteUrl } = await websiteConfig();
+  const { value } = await cached(`report-website-${siteUrl}-${r.month}-${r.to}`, 3 * 3600000, async () => {
     const [summary, traffic, queries, pages] = await Promise.all([
       getReportSummary(r).catch(() => null),
       getTrafficReport(r).catch(() => null),

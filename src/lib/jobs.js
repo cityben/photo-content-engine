@@ -11,7 +11,7 @@ import { deleteImage } from "@/lib/media";
 import { nextSlotFor } from "@/lib/schedule";
 import { createPost, listChannels, listPosts, socialMode } from "@/lib/social";
 import { collection } from "@/lib/store";
-import { createCaseStudyDraft, getSearchQueries, websiteConfigured } from "@/lib/website-api";
+import { createCaseStudyDraft, getSearchQueries, websiteConfig, websiteConfigured } from "@/lib/website-api";
 
 const jobs = () => collection("jobs");
 
@@ -110,12 +110,12 @@ export async function deleteJob(id) {
 
 /** Last 90 days of Search Console queries from the website, cached for 6 hours. */
 export async function searchConsoleData({ refresh = false } = {}) {
-  if (!websiteConfigured()) return null;
+  if (!(await websiteConfigured())) return null;
   try {
     const to = new Date().toISOString().slice(0, 10);
     const from = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
     const { value } = await cached(
-      `gsc-queries-90d`,
+      `gsc-queries-90d-${(await websiteConfig()).siteUrl}`,
       6 * 3600000,
       () => getSearchQueries({ from, to, limit: 300 }),
       { refresh }

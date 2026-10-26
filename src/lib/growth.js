@@ -12,6 +12,7 @@ import {
   getReportSummary,
   getSearchQueries,
   getTrafficReport,
+  websiteConfig,
   websiteConfigured,
 } from "@/lib/website-api";
 
@@ -32,9 +33,10 @@ export async function growthData({ days = 30, refresh = false } = {}) {
 
   const social = await settle(analytics({ start: start.toISOString(), end: end.toISOString() }));
 
-  let website = { configured: websiteConfigured(), summary: null, traffic: null, queries: null, error: null };
+  let website = { configured: await websiteConfigured(), summary: null, traffic: null, queries: null, error: null };
   if (website.configured) {
-    const key = `website-reports-${days}d`;
+    const { siteUrl } = await websiteConfig();
+    const key = `website-reports-${siteUrl}-${days}d`;
     const result = await settle(
       cached(
         key,

@@ -9,7 +9,7 @@ Everything is optional except sign-in: without keys the app runs in **sandbox mo
 | MongoDB | `MONGODB_URI` | Jobs saved permanently (required on Vercel) |
 | Vercel Blob | `BLOB_READ_WRITE_TOKEN` | Public photo links for Buffer/Instagram |
 | Buffer | `BUFFER_API_KEY`, `ENABLE_BUFFER_POSTING` | Real scheduling, calendar and stats |
-| Website | `WEBSITE_API_KEY` | Case study drafts, Search Console keywords, traffic |
+| Website | Set in **Settings → Website** (or `WEBSITE_API_KEY`) | Case study drafts, Search Console keywords, traffic |
 | DataForSEO | `DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD` | Competitors, keyword demand, trends, reviews, mentions, AI visibility, backlinks, page checks |
 
 ## Local development
@@ -82,7 +82,10 @@ Instagram needs at least one photo per post (several become a carousel). Links g
    - role **editor**
    - scopes `content:write`, `media:write`, `analytics:read`
    - leave allowed origins empty (this app calls from its server)
-2. Copy the `cc_live_…` key (shown once) → `WEBSITE_API_KEY`. `WEBSITE_API_SECRET` is not used by the website and can be deleted.
+2. In this app, **Settings → Website**: enter the website address and paste the `cc_live_…` key, then **Test connection** and **Save**.
+   - Until launch day the new site (with the API) runs at `https://staging.example.co.uk`; `www.example.co.uk` is still the old site and answers 404. Change the address on launch day — no redeploy needed.
+   - The key is stored encrypted (AES-256-GCM, keyed from `AUTH_SECRET`) and never shown again. If you change `AUTH_SECRET`, paste the key again.
+   - `WEBSITE_API_KEY` / `NEXT_PUBLIC_WEBSITE_URL` env vars still work as a fallback; anything saved in Settings wins. `WEBSITE_API_SECRET` isn't used and can be deleted.
 
 Then on a job's **Case study** tab, **Send as draft** uploads the photos to the website and creates the case study unpublished. Review and publish it in the website admin. The **Search & keywords** and **Analytics** pages switch to real Search Console and GA4 numbers, and new jobs' keyword advice uses them.
 
