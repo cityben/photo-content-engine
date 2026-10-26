@@ -6,6 +6,8 @@
  * Post metrics are marked experimental by Buffer and refresh about once a day.
  */
 
+import { block, blockedUntil, cachedRead, recordCall, untilText } from "./budget";
+
 const ENDPOINT = "https://api.buffer.com/graphql";
 const ERROR_TYPES = [
   "InvalidInputError",
@@ -35,6 +37,10 @@ async function gql(query, variables = {}) {
   const key = bufferApiKey();
   if (!key) throw new BufferError("BUFFER_API_KEY is not set");
 
+  // Asking again while blocked only extends the block: stop here instead.
+  const until = await blockedUntil();
+  if (until) throw new BufferError(`Buffer's API limit is used up until ${untilText(until)}. Showing the last saved data.`, { status: 429, retryAfter: Math.ceil((until - Date.now()) / 1000) });
+
   const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: {
@@ -46,12 +52,12 @@ async function gql(query, variables = {}) {
     cache: "no-store",
   });
 
+  await recordCall(res.headers);
+
   if (res.status === 429) {
     const retryAfter = Number(res.headers.get("retry-after")) || null;
-    throw new BufferError(
-      `Buffer rate limit reached${retryAfter ? `, try again in ${Math.ceil(retryAfter / 60)} min` : ""}.`,
-      { status: 429, retryAfter }
-    );
+    const blocked = await block(retryAfter);
+    throw new BufferError(`Buffer's API limit is used up until ${untilText(blocked)}. Showing the last saved data.`, { status: 429, retryAfter });
   }
   if (res.status === 401 || res.status === 403) {
     throw new BufferError("Buffer rejected the API key. Check BUFFER_API_KEY.", { status: res.status });
@@ -102,9 +108,12 @@ function normalisePost(node) {
   };
 }
 
+// The account and its organisations rarely change: one read every 6 hours.
 export async function getAccount() {
-  const data = await gql(`query Account { account { id email name timezone organizations { id name } } }`);
-  return data.account;
+  return cachedRead("account", 6 * 3600000, async () => {
+    const data = await gql(`query Account { account { id email name timezone organizations { id name } } }`);
+    return data.account;
+  });
 }
 
 /**

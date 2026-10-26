@@ -11,7 +11,9 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { api } from "@/lib/client-api";
 import { cn } from "@/lib/utils";
 
-const POLL = 5 * 60 * 1000;
+// Buffer reads behind this are cached, but there's no need to ask often.
+const POLL = 15 * 60 * 1000;
+const MIN_GAP = 2 * 60 * 1000;
 const DOT = { high: "bg-destructive", medium: "bg-primary", low: "bg-gray-400" };
 const LATER = [
   ["hours", "In 3 hours"],
@@ -82,8 +84,12 @@ export function NotificationBell() {
   // Rendered only inside the closed sheet, so no server/client mismatch.
   const [alerts, setAlerts] = useState(readAlerts);
   const seen = useRef(null);
+  const last = useRef(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ force = false } = {}) => {
+    // Skip hidden tabs and quick page-to-page clicks.
+    if (!force && (document.visibilityState === "hidden" || Date.now() - last.current < MIN_GAP)) return;
+    last.current = Date.now();
     try {
       const next = await api("/api/notifications");
       setData(next);
@@ -99,13 +105,13 @@ export function NotificationBell() {
   }, []);
 
   useEffect(() => {
-    const t = setInterval(load, POLL);
+    const t = setInterval(() => load(), POLL);
     return () => clearInterval(t);
   }, [load]);
 
   // On load, and fresh counts after moving around the app (approving, scheduling…).
   useEffect(() => {
-    const t = setTimeout(load, 0);
+    const t = setTimeout(() => load(), 0);
     return () => clearTimeout(t);
   }, [pathname, load]);
 
@@ -143,7 +149,13 @@ export function NotificationBell() {
   const Icon = urgent ? BellRing : Bell;
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) load({ force: true });
+      }}
+    >
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative" aria-label={count ? `To-do: ${count} item${count === 1 ? "" : "s"}${urgent ? `, ${urgent} urgent` : ""}` : "To-do: nothing waiting"}>
           <Icon className="size-5" />

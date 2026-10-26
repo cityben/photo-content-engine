@@ -11,12 +11,22 @@
 
 import { collection } from "@/lib/store";
 
+import { bumpPosts, cachedRead, postsVersion } from "./budget";
 import * as buffer from "./buffer";
 import * as sandbox from "./sandbox";
 
 export function socialMode() {
   if (process.env.SOCIAL_MODE === "sandbox") return "sandbox";
   return buffer.bufferApiKey() ? "live" : "sandbox";
+}
+
+export { usage as bufferUsage } from "./budget";
+
+const MIN = 60000;
+
+/** Live reads go through the shared cache (see budget.js); the sandbox needs none. */
+async function read(key, ttlMs, compute) {
+  return socialMode() === "live" ? cachedRead(key, ttlMs, compute) : compute();
 }
 
 export function postingEnabled() {
@@ -42,7 +52,7 @@ export const SUPPORTED_SERVICES = ["linkedin", "instagram"];
 
 /** Every channel connected in Buffer (all organisations), flagged if jobs can post to it. */
 export async function listChannels() {
-  const channels = await provider().listChannels();
+  const channels = await read("channels", 30 * MIN, () => provider().listChannels());
   return channels.map((c) => ({ ...c, canCompose: SUPPORTED_SERVICES.includes(c.service) }));
 }
 
@@ -61,7 +71,9 @@ async function attachJobs(posts) {
 }
 
 export async function listPosts(options = {}) {
-  const posts = await provider().listPosts(options);
+  // Metrics refresh about once a day in Buffer, so stats can wait an hour.
+  const key = socialMode() === "live" ? `posts:v${await postsVersion()}:${JSON.stringify(options)}` : null;
+  const posts = await read(key, (options.withMetrics ? 60 : 10) * MIN, () => provider().listPosts(options));
   const filtered = posts;
   if (socialMode() === "sandbox" && options.withMetrics) {
     filtered.forEach((p) => {
@@ -74,7 +86,8 @@ export async function listPosts(options = {}) {
 }
 
 export async function getPost(id) {
-  const post = await provider().getPost(id);
+  const key = socialMode() === "live" ? `post:v${await postsVersion()}:${id}` : null;
+  const post = await read(key, 10 * MIN, () => provider().getPost(id));
   if (!post) return null;
   if (socialMode() === "sandbox") {
     post.metrics = sandbox.simulatedMetrics(post);
@@ -105,6 +118,7 @@ export async function createPost({ channel, text, images = [], dueAt, firstComme
     firstComment,
   });
 
+  if (socialMode() === "live") await bumpPosts();
   if (job) {
     await links().insert({
       postId: post.id,
@@ -120,12 +134,15 @@ export async function createPost({ channel, text, images = [], dueAt, firstComme
 
 export async function editPost(id, changes) {
   assertWritable();
-  return provider().editPost(id, changes);
+  const post = await provider().editPost(id, changes);
+  if (socialMode() === "live") await bumpPosts();
+  return post;
 }
 
 export async function deletePost(id) {
   assertWritable();
   await provider().deletePost(id);
+  if (socialMode() === "live") await bumpPosts();
   const link = (await links().find({ postId: id }))[0];
   if (link) await links().remove(link.id);
   return true;

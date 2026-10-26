@@ -3,10 +3,12 @@
  */
 
 import { createPost, deletePost, listPosts, toBufferInput, BufferError } from '../src/lib/social/buffer';
+import { resetBudget } from '../src/lib/social/budget';
 
 const ok = (data) => ({ ok: true, status: 200, headers: new Map(), json: async () => ({ data }) });
 
-beforeEach(() => {
+beforeEach(async () => {
+  await resetBudget();
   process.env.BUFFER_API_KEY = 'test-key';
   process.env.BUFFER_ORGANIZATION_ID = 'org1';
   global.fetch = jest.fn();
@@ -64,7 +66,7 @@ describe('createPost', () => {
     global.fetch.mockResolvedValueOnce({ ok: false, status: 429, headers: new Map([['retry-after', '240']]), json: async () => ({}) });
     const err = await createPost({ channelId: 'c1', service: 'linkedin', text: 'Hi' }).catch((e) => e);
     expect(err).toBeInstanceOf(BufferError);
-    expect(err.message).toMatch(/rate limit.*4 min/);
+    expect(err.message).toMatch(/limit is used up until .*in 4 min/);
   });
 });
 

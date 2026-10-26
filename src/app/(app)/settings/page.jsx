@@ -12,7 +12,7 @@ import { EMPTY_PROFILE, getProfile } from "@/lib/profile";
 import { accountBalance, dataforseoConfigured, isSandbox, monthlyBudget, monthSpend } from "@/lib/seo/dataforseo";
 import { setupStatus } from "@/lib/setup";
 import { checkStorage } from "@/lib/store";
-import { listChannels, socialMode, status as socialStatus } from "@/lib/social";
+import { bufferUsage, listChannels, socialMode, status as socialStatus } from "@/lib/social";
 import { money, serviceInfo } from "@/lib/ui-labels";
 import { checkWebsiteConnection, websiteConfigPublic } from "@/lib/website-api";
 
@@ -71,6 +71,7 @@ export default async function SettingsPage() {
       return typeof fallback === "function" ? fallback(error) : fallback;
     });
   const seoOn = dataforseoConfigured();
+  const bufferCalls = socialMode() === "live" ? await settle(bufferUsage(), null, "buffer usage") : null;
   const [buffer, channels, website, websiteConfig, catalog, credits, storage, seoSpend, seoBalance, profile] = await Promise.all([
     settle(socialStatus(), (e) => ({ mode: socialMode(), ok: false, error: e.message }), "buffer"),
     settle(listChannels(), [], "channels"),
@@ -137,6 +138,14 @@ export default async function SettingsPage() {
             <p>
               Signed in as <span className="font-medium">{buffer.account.email}</span>
               {buffer.account.organizations?.length > 1 && ` · ${buffer.account.organizations.length} organisations, all shown`}
+            </p>
+          )}
+          {bufferCalls && (
+            <p className="rounded-md bg-gray-50 p-3 text-gray-700">
+              {bufferCalls.blockedUntil
+                ? `Buffer's API limit is used up until ${new Date(bufferCalls.blockedUntil).toLocaleString("en-GB", { timeZone: "Europe/London", weekday: "short", hour: "2-digit", minute: "2-digit" })}. Nothing is sent to Buffer until then; pages show the last saved data. `
+                : ""}
+              About {bufferCalls.last24h} Buffer API {bufferCalls.last24h === 1 ? "request" : "requests"} in the last 24 hours ({bufferCalls.last15m} in the last 15 minutes). Buffer allows roughly 100–500 a day depending on your plan, so channels are re-read every 30 minutes, posts every 10 and stats every hour.
             </p>
           )}
           {socialMode() === "sandbox" && (
